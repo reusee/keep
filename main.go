@@ -117,20 +117,30 @@ func main() {
 
 	// account summaries
 	accounts := make(map[string]map[string]*big.Rat)
+	sum := func(name, currency string, n *big.Rat) {
+		var account map[string]*big.Rat
+		var ok bool
+		if account, ok = accounts[name]; !ok {
+			account = make(map[string]*big.Rat)
+			accounts[name] = account
+		}
+		var amount *big.Rat
+		if amount, ok = account[currency]; !ok {
+			amount = new(big.Rat)
+		}
+		amount.Add(amount, n)
+		account[currency] = amount
+	}
 	for _, transaction := range transactions {
 		for _, entry := range transaction.Entries {
-			var account map[string]*big.Rat
-			var ok bool
-			if account, ok = accounts[entry.Account]; !ok {
-				account = make(map[string]*big.Rat)
-				accounts[entry.Account] = account
+			var name []rune
+			for _, r := range entry.Account {
+				if r == '：' {
+					sum(string(name), entry.Currency, entry.Amount)
+				}
+				name = append(name, r)
 			}
-			var amount *big.Rat
-			if amount, ok = account[entry.Currency]; !ok {
-				amount = new(big.Rat)
-			}
-			amount.Add(amount, entry.Amount)
-			account[entry.Currency] = amount
+			sum(string(name), entry.Currency, entry.Amount)
 		}
 	}
 	names := []string{}
@@ -140,7 +150,17 @@ func main() {
 	sort.Strings(names)
 	for _, name := range names {
 		account := accounts[name]
-		pt("%s", name)
+		n := []rune{}
+		level := 0
+		for _, r := range name {
+			if r == '：' {
+				n = n[0:0]
+				level++
+			} else {
+				n = append(n, r)
+			}
+		}
+		pt("%s%s", strings.Repeat("\t", level), string(n))
 		for currency, amount := range account {
 			pt(" %s%s", currency, amount.FloatString(2))
 		}
