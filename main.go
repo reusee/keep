@@ -60,6 +60,9 @@ func main() {
 			continue
 		}
 		when, what := spaceSplit(strings.TrimSpace(lines[0]))
+		if len(when) == 0 {
+			continue
+		}
 		parts := strings.Split(when, "-")
 		year, err := strconv.Atoi(parts[0])
 		checkErr("parse year", err)
