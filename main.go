@@ -55,6 +55,7 @@ func main() {
 	checkErr("read file", err)
 	entries := strings.Split(string(bs), "\n\n")
 	for _, bs := range entries {
+		bs = strings.TrimSpace(bs)
 		lines := strings.Split(bs, "\n")
 		if len(lines) == 0 {
 			continue
