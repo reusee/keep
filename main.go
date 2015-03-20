@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"os"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/shopspring/decimal"
 )
 
 func init() {
@@ -40,7 +39,7 @@ func main() {
 	type Entry struct {
 		Account  string
 		Currency string
-		Amount   decimal.Decimal
+		Amount   *big.Rat
 	}
 	type Transaction struct {
 		When    time.Time
@@ -93,7 +92,8 @@ func main() {
 			runes := []rune(res)
 			currency := string(runes[0])
 			entry.Currency = currency
-			amount, err := decimal.NewFromString(string(runes[1:]))
+			amount := new(big.Rat)
+			_, err := fmt.Sscan(string(runes[1:]), amount)
 			checkErr(sp("parse amount %v", string(runes[1:])), err)
 			entry.Amount = amount
 			transaction.Entries = append(transaction.Entries, entry)
@@ -102,11 +102,14 @@ func main() {
 	}
 
 	// calculate balance
-	zero := decimal.New(0, 0)
+	zero := new(big.Rat)
 	for _, transaction := range transactions {
-		balance := make(map[string]decimal.Decimal)
+		balance := make(map[string]*big.Rat)
 		for _, entry := range transaction.Entries {
-			balance[entry.Currency].Add(entry.Amount)
+			if _, ok := balance[entry.Currency]; !ok {
+				balance[entry.Currency] = new(big.Rat)
+			}
+			balance[entry.Currency].Add(balance[entry.Currency], entry.Amount)
 		}
 		for _, n := range balance {
 			if n.Cmp(zero) != 0 {
@@ -116,16 +119,19 @@ func main() {
 	}
 
 	// account summaries
-	accounts := make(map[string]map[string]decimal.Decimal)
-	sum := func(name, currency string, n decimal.Decimal) {
-		var account map[string]decimal.Decimal
+	accounts := make(map[string]map[string]*big.Rat)
+	sum := func(name, currency string, n *big.Rat) {
+		var account map[string]*big.Rat
 		var ok bool
 		if account, ok = accounts[name]; !ok {
-			account = make(map[string]decimal.Decimal)
+			account = make(map[string]*big.Rat)
 			accounts[name] = account
 		}
-		var amount decimal.Decimal
-		amount = amount.Add(n)
+		var amount *big.Rat
+		if amount, ok = account[currency]; !ok {
+			amount = new(big.Rat)
+		}
+		amount.Add(amount, n)
 		account[currency] = amount
 	}
 	for _, transaction := range transactions {
@@ -159,7 +165,7 @@ func main() {
 		}
 		pt("%s%s", strings.Repeat("\t", level), string(n))
 		for currency, amount := range account {
-			pt(" %s%s", currency, amount.String())
+			pt(" %s%s", currency, amount.FloatString(2))
 		}
 		pt("\n")
 	}
