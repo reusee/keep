@@ -30,12 +30,6 @@ func main() {
 		return
 	}
 
-	checkErr := func(msg string, err error) {
-		if err != nil {
-			log.Fatalf("%s: %v", msg, err)
-		}
-	}
-
 	type Entry struct {
 		Account  string
 		Currency string
@@ -49,14 +43,17 @@ func main() {
 
 	// parse
 	location, err := time.LoadLocation("Asia/Hong_Kong")
-	checkErr("load location", err)
+	ce(err, "load location")
 	transactions := []Transaction{}
 	bs, err := ioutil.ReadFile(args[0])
-	checkErr("read file", err)
+	ce(err, "read file")
 	entries := strings.Split(string(bs), "\n\n")
 	for _, bs := range entries {
 		bs = strings.TrimSpace(bs)
-		lines := strings.Split(bs, "\n")
+		lines := Strs(strings.Split(bs, "\n"))
+		lines = lines.Filter(func(s string) bool {
+			return !strings.HasPrefix(s, "#")
+		})
 		if len(lines) == 0 {
 			continue
 		}
@@ -66,14 +63,14 @@ func main() {
 		}
 		parts := strings.Split(when, "-")
 		year, err := strconv.Atoi(parts[0])
-		checkErr("parse year", err)
+		ce(err, "parse year")
 		if year < 100 {
 			year += 2000
 		}
 		month, err := strconv.Atoi(parts[1])
-		checkErr("parse month", err)
+		ce(err, "parse month")
 		day, err := strconv.Atoi(parts[2])
-		checkErr("parse day", err)
+		ce(err, "parse day")
 		transaction := Transaction{
 			When: time.Date(year, time.Month(month), day, 0, 0, 0, 0, location),
 			What: what,
@@ -95,7 +92,7 @@ func main() {
 			entry.Currency = currency
 			amount := new(big.Rat)
 			_, err := fmt.Sscan(string(runes[1:]), amount)
-			checkErr(sp("parse amount %v", string(runes[1:])), err)
+			ce(err, sp("parse amount %v", string(runes[1:])))
 			entry.Amount = amount
 			transaction.Entries = append(transaction.Entries, entry)
 		}
