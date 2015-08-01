@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -19,8 +20,10 @@ func init() {
 }
 
 var (
-	pt = fmt.Printf
-	sp = fmt.Sprintf
+	pt   = fmt.Printf
+	sp   = fmt.Sprintf
+	fp   = fmt.Fprintf
+	zero = new(big.Rat)
 )
 
 func main() {
@@ -161,11 +164,19 @@ func main() {
 				n = append(n, r)
 			}
 		}
-		pt("%s%s", strings.Repeat("\t", level), string(n))
+		buf := new(bytes.Buffer)
+		fp(buf, "%s%s", strings.Repeat("\t", level), string(n))
+		nonZero := false
 		for currency, amount := range account {
-			pt(" %s%s", currency, amount.FloatString(2))
+			if amount.Cmp(zero) != 0 {
+				nonZero = true
+				fp(buf, " %s%s", currency, amount.FloatString(2))
+			}
 		}
-		pt("\n")
+		fp(buf, "\n")
+		if nonZero {
+			pt("%s", buf.Bytes())
+		}
 	}
 
 }
