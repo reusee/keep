@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/text/width"
 )
 
 func init() {
@@ -33,9 +35,10 @@ func main() {
 		return
 	}
 
+	type Currency string
 	type Entry struct {
 		Account  string
-		Currency string
+		Currency Currency
 		Amount   *big.Rat
 	}
 	type Transaction struct {
@@ -91,7 +94,7 @@ func main() {
 				log.Fatalf("invalid entry %s", line)
 			}
 			runes := []rune(res)
-			currency := string(runes[0])
+			currency := Currency(runes[0])
 			entry.Currency = currency
 			amount := new(big.Rat)
 			_, err := fmt.Sscan(string(runes[1:]), amount)
@@ -105,7 +108,7 @@ func main() {
 	// calculate balance
 	zero := new(big.Rat)
 	for _, transaction := range transactions {
-		balance := make(map[string]*big.Rat)
+		balance := make(map[Currency]*big.Rat)
 		for _, entry := range transaction.Entries {
 			if _, ok := balance[entry.Currency]; !ok {
 				balance[entry.Currency] = new(big.Rat)
@@ -119,20 +122,33 @@ func main() {
 		}
 	}
 
+	type Amount struct {
+		Debit  *big.Rat
+		Credit *big.Rat
+	}
+	type Account map[Currency]*Amount
+
 	// account summaries
-	accounts := make(map[string]map[string]*big.Rat)
-	sum := func(name, currency string, n *big.Rat) {
-		var account map[string]*big.Rat
+	accounts := make(map[string]Account)
+	sum := func(name string, currency Currency, n *big.Rat) {
+		var account Account
 		var ok bool
 		if account, ok = accounts[name]; !ok {
-			account = make(map[string]*big.Rat)
+			account = make(Account)
 			accounts[name] = account
 		}
-		var amount *big.Rat
+		var amount *Amount
 		if amount, ok = account[currency]; !ok {
-			amount = new(big.Rat)
+			amount = &Amount{
+				Debit:  new(big.Rat),
+				Credit: new(big.Rat),
+			}
 		}
-		amount.Add(amount, n)
+		if n.Sign() == -1 {
+			amount.Credit.Add(amount.Credit, n)
+		} else {
+			amount.Debit.Add(amount.Debit, n)
+		}
 		account[currency] = amount
 	}
 	for _, transaction := range transactions {
@@ -148,8 +164,24 @@ func main() {
 		}
 	}
 	names := []string{}
+	maxNameLen := 0
 	for name := range accounts {
 		names = append(names, name)
+		nameLen := 0
+		level := 0
+		for _, r := range name {
+			if r == '：' {
+				level++
+				nameLen = level * 2
+			} else if width.LookupRune(r).Kind() == width.EastAsianWide {
+				nameLen += 2
+			} else {
+				nameLen += 1
+			}
+			if nameLen > maxNameLen {
+				maxNameLen = nameLen
+			}
+		}
 	}
 	sort.Strings(names)
 	for _, name := range names {
@@ -165,12 +197,22 @@ func main() {
 			}
 		}
 		buf := new(bytes.Buffer)
-		fp(buf, "%s%s", strings.Repeat("\t", level), string(n))
+		buf.WriteString(pad(strings.Repeat("  ", level)+string(n), maxNameLen))
 		nonZero := false
 		for currency, amount := range account {
-			if amount.Cmp(zero) != 0 {
+			balance := new(big.Rat)
+			balance.Set(amount.Credit)
+			balance.Add(balance, amount.Debit)
+			if balance.Sign() != 0 {
 				nonZero = true
-				fp(buf, " %s%s", currency, amount.FloatString(2))
+				credit := new(big.Rat)
+				credit.Set(amount.Credit)
+				credit.Abs(credit)
+				fp(buf, " %s%s %s - %s", currency,
+					pad(balance.FloatString(2), 10),
+					pad(amount.Debit.FloatString(2), 10),
+					pad(credit.FloatString(2), 10),
+				)
 			}
 		}
 		fp(buf, "\n")
@@ -189,4 +231,19 @@ func spaceSplit(s string) (string, string) {
 		return ss[0], ""
 	}
 	return ss[0], ss[1]
+}
+
+func pad(s string, l int) string {
+	n := 0
+	for _, r := range s {
+		if width.LookupRune(r).Kind() == width.EastAsianWide {
+			n += 2
+		} else {
+			n += 1
+		}
+	}
+	if res := l - n; res > 0 {
+		return s + strings.Repeat(" ", res)
+	}
+	return s
 }
