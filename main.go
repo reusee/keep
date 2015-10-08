@@ -28,6 +28,15 @@ var (
 	zero = new(big.Rat)
 )
 
+var (
+	dateFromPtr = flag.String("from", "0000-01-01", "date from")
+	dateToPtr   = flag.String("to", "9999-01-01", "date to")
+)
+
+func init() {
+	flag.Parse()
+}
+
 func main() {
 	args := flag.Args()
 	if len(args) < 1 {
@@ -46,6 +55,11 @@ func main() {
 		What    string
 		Entries []Entry
 	}
+
+	dateFrom, err := time.Parse("2006-01-02", *dateFromPtr)
+	ce(err, "parse date from")
+	dateTo, err := time.Parse("2006-01-02", *dateToPtr)
+	ce(err, "parse date to")
 
 	// parse
 	location, err := time.LoadLocation("Asia/Hong_Kong")
@@ -102,6 +116,9 @@ func main() {
 			entry.Amount = amount
 			transaction.Entries = append(transaction.Entries, entry)
 		}
+		if transaction.When.Before(dateFrom) || transaction.When.After(dateTo) {
+			continue
+		}
 		transactions = append(transactions, transaction)
 	}
 
@@ -129,6 +146,19 @@ func main() {
 	type Account map[Currency]*Amount
 
 	// account summaries
+	p := false
+	if *dateFromPtr != "0000-01-01" {
+		p = true
+		pt("From %04d-%02d-%02d", dateFrom.Year(), dateFrom.Month(), dateFrom.Day())
+	}
+	if *dateToPtr != "9999-01-01" {
+		p = true
+		pt(" To %04d-%02d-%02d", dateTo.Year(), dateTo.Month(), dateTo.Day())
+	}
+	if p {
+		pt("\n")
+	}
+
 	accounts := make(map[string]Account)
 	sum := func(name string, currency Currency, n *big.Rat) {
 		var account Account
