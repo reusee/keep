@@ -100,15 +100,22 @@ func main() {
 			if len(line) == 0 {
 				continue
 			}
-			account, res := spaceSplit(line)
-			entry := Entry{
-				When:    when,
-				Account: account,
-			}
-			if len(res) == 0 {
+			parts := spaceSplitPattern.Split(line, -1)
+			if len(parts) < 2 {
 				log.Fatalf("invalid entry %s", line)
 			}
-			runes := []rune(res)
+			for _, part := range parts[2:] {
+				if part[0] == '@' { // date
+					w, err := time.Parse("2006-01-02", part[1:])
+					ce(err, sp("parse date %s", part[1:]))
+					when = w
+				}
+			}
+			entry := Entry{
+				When:    when,
+				Account: parts[0],
+			}
+			runes := []rune(parts[1])
 			currency := Currency(runes[0])
 			entry.Currency = currency
 			amount := new(big.Rat)
