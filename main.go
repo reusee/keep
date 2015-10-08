@@ -46,12 +46,12 @@ func main() {
 
 	type Currency string
 	type Entry struct {
+		When     time.Time
 		Account  string
 		Currency Currency
 		Amount   *big.Rat
 	}
 	type Transaction struct {
-		When    time.Time
 		What    string
 		Entries []Entry
 	}
@@ -77,11 +77,11 @@ func main() {
 		if len(lines) == 0 {
 			continue
 		}
-		when, what := spaceSplit(strings.TrimSpace(lines[0]))
-		if len(when) == 0 {
+		whenStr, what := spaceSplit(strings.TrimSpace(lines[0]))
+		if len(whenStr) == 0 {
 			continue
 		}
-		parts := strings.Split(when, "-")
+		parts := strings.Split(whenStr, "-")
 		year, err := strconv.Atoi(parts[0])
 		ce(err, "parse year")
 		if year < 100 {
@@ -91,8 +91,8 @@ func main() {
 		ce(err, "parse month")
 		day, err := strconv.Atoi(parts[2])
 		ce(err, "parse day")
+		when := time.Date(year, time.Month(month), day, 0, 0, 0, 0, location)
 		transaction := Transaction{
-			When: time.Date(year, time.Month(month), day, 0, 0, 0, 0, location),
 			What: what,
 		}
 		for _, line := range lines[1:] {
@@ -102,6 +102,7 @@ func main() {
 			}
 			account, res := spaceSplit(line)
 			entry := Entry{
+				When:    when,
 				Account: account,
 			}
 			if len(res) == 0 {
@@ -114,10 +115,10 @@ func main() {
 			_, err := fmt.Sscan(string(runes[1:]), amount)
 			ce(err, sp("parse amount %v", string(runes[1:])))
 			entry.Amount = amount
+			if entry.When.Before(dateFrom) || entry.When.After(dateTo) {
+				continue
+			}
 			transaction.Entries = append(transaction.Entries, entry)
-		}
-		if transaction.When.Before(dateFrom) || transaction.When.After(dateTo) {
-			continue
 		}
 		transactions = append(transactions, transaction)
 	}
@@ -152,8 +153,11 @@ func main() {
 		pt("From %04d-%02d-%02d", dateFrom.Year(), dateFrom.Month(), dateFrom.Day())
 	}
 	if *dateToPtr != "9999-01-01" {
+		if p {
+			pt(" ")
+		}
 		p = true
-		pt(" To %04d-%02d-%02d", dateTo.Year(), dateTo.Month(), dateTo.Day())
+		pt("To %04d-%02d-%02d", dateTo.Year(), dateTo.Month(), dateTo.Day())
 	}
 	if p {
 		pt("\n")
