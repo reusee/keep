@@ -60,6 +60,7 @@ func main() {
 	ce(err, "parse date from")
 	dateTo, err := time.Parse("2006-01-02", *dateToPtr)
 	ce(err, "parse date to")
+	dateTo = dateTo.Add(time.Hour * 24)
 
 	// parse
 	location, err := time.LoadLocation("Asia/Hong_Kong")

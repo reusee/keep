@@ -104,28 +104,20 @@ func (s Strs) Clone() (ret Strs) {
 type Err struct {
 	Pkg  string
 	Info string
-	Err  error
+	Prev error
 }
 
 func (e *Err) Error() string {
-	return fmt.Sprintf("%s: %s\n%v", e.Pkg, e.Info, e.Err)
-}
-
-func makeErr(err error, info string) *Err {
-	return &Err{
-		Pkg:  `keep`,
-		Info: info,
-		Err:  err,
+	if e.Prev == nil {
+		return fmt.Sprintf("%s: %s", e.Pkg, e.Info)
 	}
+	return fmt.Sprintf("%s: %s\n%v", e.Pkg, e.Info, e.Prev)
 }
 
-func ce(err error, info string) (ret bool) {
-	ret = true
+func ce(err error, format string, args ...interface{}) {
 	if err != nil {
-		panic(makeErr(err, info))
+		panic(me(err, format, args...))
 	}
-	ret = false
-	return
 }
 
 func ct(err *error) {
@@ -135,5 +127,20 @@ func ct(err *error) {
 		} else {
 			panic(p)
 		}
+	}
+}
+
+func me(err error, format string, args ...interface{}) *Err {
+	if len(args) > 0 {
+		return &Err{
+			Pkg:  `keep`,
+			Info: fmt.Sprintf(format, args...),
+			Prev: err,
+		}
+	}
+	return &Err{
+		Pkg:  `keep`,
+		Info: format,
+		Prev: err,
 	}
 }
