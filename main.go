@@ -21,7 +21,7 @@ func main() {
 
 	// options
 	parseDate := func(str string) time.Time {
-		parts := strings.Split(str, "-")
+		parts := dateSepPattern.Split(str, -1)
 		if len(parts) != 3 {
 			panic(me(nil, "bad date: %s", str))
 		}
@@ -151,7 +151,7 @@ func main() {
 				}
 
 				dateStr := parts[0]
-				dateParts := strings.Split(dateStr, "-")
+				dateParts := dateSepPattern.Split(dateStr, -1)
 				if len(dateParts) != 3 {
 					panic(me(nil, "bad date: %s", line))
 				}
@@ -204,10 +204,10 @@ func main() {
 		}
 		t := time.Date(transaction.Year, time.Month(transaction.Month), transaction.Day,
 			0, 0, 0, 0, time.Local)
-			if t.Before(fromTime) || t.After(toTime) {
-				// out of range
-				continue
-			}
+		if t.Before(fromTime) || t.After(toTime) {
+			// out of range
+			continue
+		}
 
 		// check balance
 		sum := big.NewRat(0, 1)
