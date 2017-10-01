@@ -17,6 +17,9 @@ func main() {
 	flag.StringVar(&fromStr, "from", "0-1-1", "from date")
 	var toStr string
 	flag.StringVar(&toStr, "to", "9999-1-1", "to date")
+	var cmdProperties bool
+	flag.BoolVar(&cmdProperties, "props", false, "show properties")
+
 	flag.Parse()
 
 	// options
@@ -87,6 +90,7 @@ func main() {
 		Year        int
 		Month       int
 		Day         int
+		Time        time.Time
 		Description string
 		Entries     []*Entry
 	}
@@ -164,6 +168,7 @@ func main() {
 				day, err := strconv.Atoi(dateParts[2])
 				ce(err, "parse day: %s", line)
 				transaction.Day = day
+				transaction.Time = time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
 
 				transaction.Description = parts[1]
 
@@ -266,13 +271,41 @@ func main() {
 			printAccount(account.Subs[name], level+1)
 		}
 	}
-	var subNames []string
-	for name := range rootAccount.Subs {
-		subNames = append(subNames, name)
-	}
-	sort.Strings(subNames)
-	for _, name := range subNames {
-		printAccount(rootAccount.Subs[name], 0)
+	printAccount(rootAccount, 0)
+
+	if cmdProperties {
+		accountNames := map[string]bool{
+			"书籍":   true,
+			"保健品":  true,
+			"性用品":  true,
+			"消耗品":  true,
+			"物品":   true,
+			"电子":   true,
+			"药物":   true,
+			"衣物服饰": true,
+		}
+		accounts := map[*Account]bool{}
+		for name, account := range rootAccount.Subs["支出"].Subs {
+			if accountNames[name] {
+				accounts[account] = true
+			}
+		}
+		var ts []*Transaction
+	loop_t:
+		for _, t := range transactions {
+			for _, entry := range t.Entries {
+				if accounts[entry.Account] {
+					ts = append(ts, t)
+					continue loop_t
+				}
+			}
+		}
+		sort.Slice(ts, func(i, j int) bool {
+			return ts[i].Time.Before(ts[j].Time)
+		})
+		for _, t := range ts {
+			pt("%s %s\n", t.Time.Format("01-02"), t.Description)
+		}
 	}
 
 }
