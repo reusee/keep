@@ -75,10 +75,11 @@ func main() {
 
 	// transaction
 	type Account struct {
-		Name     string
-		Subs     map[string]*Account
-		Parent   *Account
-		Balances map[string]*big.Rat
+		Name        string
+		Subs        map[string]*Account
+		Parent      *Account
+		Balances    map[string]*big.Rat
+		Proportions map[string]*big.Rat
 	}
 	type Entry struct {
 		Account     *Account
@@ -97,10 +98,11 @@ func main() {
 	var transactions []*Transaction
 
 	rootAccount := &Account{
-		Name:     "root",
-		Subs:     make(map[string]*Account),
-		Parent:   nil,
-		Balances: make(map[string]*big.Rat),
+		Name:        "root",
+		Subs:        make(map[string]*Account),
+		Parent:      nil,
+		Balances:    make(map[string]*big.Rat),
+		Proportions: make(map[string]*big.Rat),
 	}
 	var getAccount func(root *Account, path []string) *Account
 	getAccount = func(root *Account, path []string) *Account {
@@ -113,10 +115,11 @@ func main() {
 				return account
 			}
 			account = &Account{
-				Name:     name,
-				Subs:     make(map[string]*Account),
-				Parent:   root,
-				Balances: make(map[string]*big.Rat),
+				Name:        name,
+				Subs:        make(map[string]*Account),
+				Parent:      root,
+				Balances:    make(map[string]*big.Rat),
+				Proportions: make(map[string]*big.Rat),
 			}
 			root.Subs[name] = account
 			return account
@@ -125,10 +128,11 @@ func main() {
 		account, ok := root.Subs[name]
 		if !ok {
 			account = &Account{
-				Name:     name,
-				Subs:     make(map[string]*Account),
-				Parent:   root,
-				Balances: make(map[string]*big.Rat),
+				Name:        name,
+				Subs:        make(map[string]*Account),
+				Parent:      root,
+				Balances:    make(map[string]*big.Rat),
+				Proportions: make(map[string]*big.Rat),
 			}
 			root.Subs[name] = account
 		}
@@ -237,7 +241,25 @@ func main() {
 		transactions = append(transactions, transaction)
 	}
 
+	// calculate proportions
+	var calculateProportion func(*Account)
+	calculateProportion = func(account *Account) {
+		for _, sub := range account.Subs {
+			for currency, balance := range sub.Balances {
+				if account.Balances[currency].Sign() != 0 {
+					b := big.NewRat(0, 1)
+					b.Set(balance)
+					sub.Proportions[currency] = b.Quo(balance, account.Balances[currency])
+					b.Abs(b)
+				}
+				calculateProportion(sub)
+			}
+		}
+	}
+	calculateProportion(rootAccount)
+
 	// print accounts
+	onePercent := big.NewRat(1, 100)
 	var printAccount func(account *Account, level int)
 	printAccount = func(account *Account, level int) {
 		allZero := true
@@ -258,7 +280,11 @@ func main() {
 		sort.Strings(currencyNames)
 		for _, name := range currencyNames {
 			balance := account.Balances[name]
-			pt(" %s%s", name, balance.FloatString(2))
+			var proportion string
+			if p, ok := account.Proportions[name]; ok && p.Cmp(onePercent) > 0 {
+				proportion = " " + p.Mul(p, big.NewRat(100, 1)).FloatString(3) + "%"
+			}
+			pt(" %s%s%s", name, balance.FloatString(2), proportion)
 		}
 		pt("\n")
 
