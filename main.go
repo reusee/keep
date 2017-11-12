@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -292,7 +293,26 @@ func main() {
 		for name := range account.Subs {
 			subNames = append(subNames, name)
 		}
-		sort.Strings(subNames)
+		digitPattern := regexp.MustCompile(`^[0-9]+$`)
+		sort.Slice(subNames, func(i, j int) bool {
+			a := account.Subs[subNames[i]]
+			b := account.Subs[subNames[j]]
+			if len(a.Subs) == 0 &&
+				len(b.Subs) == 0 &&
+				!digitPattern.MatchString(subNames[i]) && // 月份
+				!digitPattern.MatchString(subNames[j]) {
+				sumA := big.NewRat(0, 1)
+				for _, balance := range a.Balances {
+					sumA.Add(sumA, balance)
+				}
+				sumB := big.NewRat(0, 1)
+				for _, balance := range b.Balances {
+					sumB.Add(sumB, balance)
+				}
+				return sumA.Cmp(sumB) > 0
+			}
+			return subNames[i] < subNames[j]
+		})
 		for _, name := range subNames {
 			printAccount(account.Subs[name], level+1)
 		}
