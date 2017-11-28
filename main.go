@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -20,6 +21,8 @@ func main() {
 	flag.StringVar(&toStr, "to", "9999-1-1", "to date")
 	var cmdProperties bool
 	flag.BoolVar(&cmdProperties, "props", false, "show properties")
+	var cmdMonthlyExpenses bool
+	flag.BoolVar(&cmdMonthlyExpenses, "monthly", false, "show monthly expenses")
 
 	flag.Parse()
 
@@ -351,6 +354,43 @@ func main() {
 		})
 		for _, t := range ts {
 			pt("%s %s\n", t.Time.Format("01-02"), t.Description)
+		}
+	}
+
+	if cmdMonthlyExpenses {
+		accounts := make(map[*Account]bool)
+		for _, account := range rootAccount.Subs["支出"].Subs {
+			accounts[account] = true
+		}
+		entries := make(map[string][]*Entry)
+		for _, transaction := range transactions {
+			for _, entry := range transaction.Entries {
+				if accounts[entry.Account] {
+					// is expense
+					monthStr := fmt.Sprintf("%04d-%02d", transaction.Year, transaction.Month)
+					entries[monthStr] = append(entries[monthStr], entry)
+				}
+			}
+		}
+		var months []string
+		for month := range entries {
+			months = append(months, month)
+		}
+		sort.Strings(months)
+		for _, month := range months {
+			es := entries[month]
+			sums := make(map[string]*big.Rat)
+			for _, entry := range es {
+				if sums[entry.Currency] == nil {
+					sums[entry.Currency] = big.NewRat(0, 1)
+				}
+				sums[entry.Currency].Add(sums[entry.Currency], entry.Amount)
+			}
+			pt("%s", month)
+			for cur, sum := range sums {
+				pt(" %s%s", cur, sum.FloatString(2))
+			}
+			pt("\n")
 		}
 	}
 
