@@ -362,25 +362,25 @@ func main() {
 		for _, account := range rootAccount.Subs["支出"].Subs {
 			accounts[account] = true
 		}
-		entries := make(map[string][]*Entry)
+		monthEntries := make(map[string][]*Entry)
 		for _, transaction := range transactions {
 			for _, entry := range transaction.Entries {
 				if accounts[entry.Account] {
 					// is expense
 					monthStr := fmt.Sprintf("%04d-%02d", transaction.Year, transaction.Month)
-					entries[monthStr] = append(entries[monthStr], entry)
+					monthEntries[monthStr] = append(monthEntries[monthStr], entry)
 				}
 			}
 		}
 		var months []string
-		for month := range entries {
+		for month := range monthEntries {
 			months = append(months, month)
 		}
 		sort.Strings(months)
 		for _, month := range months {
-			es := entries[month]
+			entries := monthEntries[month]
 			sums := make(map[string]*big.Rat)
-			for _, entry := range es {
+			for _, entry := range entries {
 				if sums[entry.Currency] == nil {
 					sums[entry.Currency] = big.NewRat(0, 1)
 				}
