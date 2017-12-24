@@ -263,7 +263,6 @@ func main() {
 	calculateProportion(rootAccount)
 
 	// print accounts
-	onePercent := big.NewRat(1, 100)
 	var printAccount func(account *Account, level int)
 	printAccount = func(account *Account, level int) {
 		allZero := true
@@ -285,7 +284,7 @@ func main() {
 		for _, name := range currencyNames {
 			balance := account.Balances[name]
 			var proportion string
-			if p, ok := account.Proportions[name]; ok && p.Cmp(onePercent) > 0 {
+			if p, ok := account.Proportions[name]; ok {
 				proportion = " " + p.Mul(p, big.NewRat(100, 1)).FloatString(3) + "%"
 			}
 			pt(" %s%s%s", name, balance.FloatString(2), proportion)
