@@ -11,6 +11,9 @@ import "C"
 import (
 	"flag"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -21,6 +24,10 @@ import (
 	"time"
 	"unicode/utf8"
 	"unsafe"
+)
+
+var (
+	accountSeparatePattern = regexp.MustCompile(`：|:`)
 )
 
 func main() {
@@ -200,16 +207,15 @@ func main() {
 				entry := new(Entry)
 
 				accountStr := parts[0]
-				account := getAccount(rootAccount, strings.Split(accountStr, "："))
+				account := getAccount(rootAccount, accountSeparatePattern.Split(accountStr, -1))
 				entry.Account = account
 
 				currency, runeSize := utf8.DecodeRuneInString(parts[1])
 				entry.Currency = string(currency)
 				amountStr := parts[1][runeSize:]
-				amount := new(big.Rat)
-				_, ok := amount.SetString(amountStr)
-				if !ok {
-					panic(me(nil, "bad amount: %s", amountStr))
+				amount, err := parseAmount(amountStr)
+				if err != nil {
+					panic(me(err, "bad amount: %s", amountStr))
 				}
 				entry.Amount = amount
 
@@ -463,5 +469,75 @@ func main() {
 		}
 
 	}
+
+}
+
+func parseAmount(str string) (*big.Rat, error) {
+	expr, err := parser.ParseExpr(str)
+	if err != nil {
+		return nil, err
+	}
+	value, err := evalExpr(expr)
+	if err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+func evalExpr(expr ast.Expr) (*big.Rat, error) {
+	switch expr := expr.(type) {
+
+	case *ast.BasicLit:
+		r := new(big.Rat)
+		a, ok := r.SetString(expr.Value)
+		if !ok {
+			return nil, me(nil, "bad expression: %s", expr.Value)
+		}
+		return a, nil
+
+	case *ast.UnaryExpr:
+		switch expr.Op {
+		case token.SUB:
+			v, err := evalExpr(expr.X)
+			if err != nil {
+				return nil, err
+			}
+			return v.Neg(v), nil
+		}
+
+	case *ast.BinaryExpr:
+		switch expr.Op {
+
+		case token.MUL:
+			x, err := evalExpr(expr.X)
+			if err != nil {
+				return nil, err
+			}
+			y, err := evalExpr(expr.Y)
+			if err != nil {
+				return nil, err
+			}
+			return x.Mul(x, y), nil
+
+		case token.SUB:
+			x, err := evalExpr(expr.X)
+			if err != nil {
+				return nil, err
+			}
+			y, err := evalExpr(expr.Y)
+			if err != nil {
+				return nil, err
+			}
+			return x.Sub(x, y), nil
+
+		}
+
+	case *ast.ParenExpr:
+		return evalExpr(expr.X)
+
+	}
+
+	pt("%#v\n", expr)
+	return nil, me(nil, "unkndown expr")
 
 }
