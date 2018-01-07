@@ -28,6 +28,7 @@ import (
 
 var (
 	accountSeparatePattern = regexp.MustCompile(`：|:`)
+	sharePricePattern      = regexp.MustCompile(`[0-9]+\.[0-9]{3}`)
 )
 
 func main() {
@@ -293,6 +294,7 @@ func main() {
 			return
 		}
 		pt("%s%s", strings.Repeat(" │    ", level), account.Name)
+		isStockShareAccount := sharePricePattern.MatchString(account.Name)
 		var currencyNames []string
 		for name := range account.Balances {
 			currencyNames = append(currencyNames, name)
@@ -304,7 +306,19 @@ func main() {
 			if p, ok := account.Proportions[name]; ok {
 				proportion = " " + p.Mul(p, big.NewRat(100, 1)).FloatString(3) + "%"
 			}
-			pt(" %s%s%s", name, balance.FloatString(2), proportion)
+			pt(" %s", name)
+			if isStockShareAccount {
+				price := new(big.Rat)
+				price, _ = price.SetString(account.Name)
+				pt("%s*", price.FloatString(3))
+				nShare := new(big.Rat)
+				nShare.Set(balance)
+				nShare.Quo(nShare, price)
+				pt("%s", nShare.FloatString(1))
+			} else {
+				pt("%s", balance.FloatString(2))
+				pt("%s", proportion)
+			}
 		}
 		pt("\n")
 
