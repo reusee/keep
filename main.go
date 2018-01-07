@@ -506,30 +506,19 @@ func evalExpr(expr ast.Expr) (*big.Rat, error) {
 		}
 
 	case *ast.BinaryExpr:
+		x, err := evalExpr(expr.X)
+		if err != nil {
+			return nil, err
+		}
+		y, err := evalExpr(expr.Y)
+		if err != nil {
+			return nil, err
+		}
 		switch expr.Op {
-
 		case token.MUL:
-			x, err := evalExpr(expr.X)
-			if err != nil {
-				return nil, err
-			}
-			y, err := evalExpr(expr.Y)
-			if err != nil {
-				return nil, err
-			}
 			return x.Mul(x, y), nil
-
 		case token.SUB:
-			x, err := evalExpr(expr.X)
-			if err != nil {
-				return nil, err
-			}
-			y, err := evalExpr(expr.Y)
-			if err != nil {
-				return nil, err
-			}
 			return x.Sub(x, y), nil
-
 		}
 
 	case *ast.ParenExpr:
