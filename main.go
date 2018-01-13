@@ -327,10 +327,34 @@ func main() {
 		for name := range account.Subs {
 			subNames = append(subNames, name)
 		}
-		allIsMonths := func() bool {
-			for _, name := range subNames {
-				if len(account.Subs[name].Subs) > 0 {
+
+		allIsLeaf := func() bool {
+			for _, sub := range account.Subs {
+				sum := big.NewRat(0, 1)
+				for _, balance := range sub.Balances {
+					sum.Add(sum, balance)
+				}
+				if sum.Sign() == 0 {
+					continue
+				}
+				if len(sub.Subs) > 0 {
 					return false
+				}
+			}
+			return true
+		}()
+		allIsMonths := func() bool {
+			if !allIsLeaf {
+				return false
+			}
+			for _, name := range subNames {
+				sub := account.Subs[name]
+				sum := big.NewRat(0, 1)
+				for _, balance := range sub.Balances {
+					sum.Add(sum, balance)
+				}
+				if sum.Sign() == 0 {
+					continue
 				}
 				if !monthPattern.MatchString(name) {
 					return false
@@ -339,9 +363,17 @@ func main() {
 			return true
 		}()
 		allIsSharePrices := func() bool {
+			if !allIsLeaf {
+				return false
+			}
 			for _, name := range subNames {
-				if len(account.Subs[name].Subs) > 0 {
-					return false
+				sub := account.Subs[name]
+				sum := big.NewRat(0, 1)
+				for _, balance := range sub.Balances {
+					sum.Add(sum, balance)
+				}
+				if sum.Sign() == 0 {
+					continue
 				}
 				if !sharePricePattern.MatchString(name) {
 					return false
@@ -349,6 +381,7 @@ func main() {
 			}
 			return true
 		}()
+
 		sort.Slice(subNames, func(i, j int) bool {
 			a := account.Subs[subNames[i]]
 			b := account.Subs[subNames[j]]
@@ -368,17 +401,20 @@ func main() {
 					panic(fmt.Sprintf("bad price: %s", subNames[j]))
 				}
 				return priceA.Cmp(priceB) > 0
+			} else if allIsLeaf {
+				// 总价排序
+				sumA := big.NewRat(0, 1)
+				for _, balance := range a.Balances {
+					sumA.Add(sumA, balance)
+				}
+				sumB := big.NewRat(0, 1)
+				for _, balance := range b.Balances {
+					sumB.Add(sumB, balance)
+				}
+				return sumA.Cmp(sumB) > 0
 			}
-			// 总价排序
-			sumA := big.NewRat(0, 1)
-			for _, balance := range a.Balances {
-				sumA.Add(sumA, balance)
-			}
-			sumB := big.NewRat(0, 1)
-			for _, balance := range b.Balances {
-				sumB.Add(sumB, balance)
-			}
-			return sumA.Cmp(sumB) > 0
+			// 名称排序
+			return subNames[i] < subNames[j]
 		})
 		for _, name := range subNames {
 			printAccount(account.Subs[name], level+1)
