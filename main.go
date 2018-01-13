@@ -29,6 +29,7 @@ import (
 var (
 	accountSeparatePattern = regexp.MustCompile(`：|:`)
 	sharePricePattern      = regexp.MustCompile(`[0-9]+\.[0-9]{3}`)
+	monthPattern           = regexp.MustCompile(`^[0-9]{4}$`)
 )
 
 func main() {
@@ -326,25 +327,58 @@ func main() {
 		for name := range account.Subs {
 			subNames = append(subNames, name)
 		}
-		digitPattern := regexp.MustCompile(`^[0-9]+$`)
+		allIsMonths := func() bool {
+			for _, name := range subNames {
+				if len(account.Subs[name].Subs) > 0 {
+					return false
+				}
+				if !monthPattern.MatchString(name) {
+					return false
+				}
+			}
+			return true
+		}()
+		allIsSharePrices := func() bool {
+			for _, name := range subNames {
+				if len(account.Subs[name].Subs) > 0 {
+					return false
+				}
+				if !sharePricePattern.MatchString(name) {
+					return false
+				}
+			}
+			return true
+		}()
 		sort.Slice(subNames, func(i, j int) bool {
 			a := account.Subs[subNames[i]]
 			b := account.Subs[subNames[j]]
-			if len(a.Subs) == 0 &&
-				len(b.Subs) == 0 &&
-				!digitPattern.MatchString(subNames[i]) && // 月份
-				!digitPattern.MatchString(subNames[j]) {
-				sumA := big.NewRat(0, 1)
-				for _, balance := range a.Balances {
-					sumA.Add(sumA, balance)
+			if allIsMonths {
+				// 月份排序
+				return subNames[i] < subNames[j]
+			} else if allIsSharePrices {
+				// 价格排序
+				priceA := new(big.Rat)
+				priceA, ok := priceA.SetString(subNames[i])
+				if !ok {
+					panic(fmt.Sprintf("bad price: %s", subNames[i]))
 				}
-				sumB := big.NewRat(0, 1)
-				for _, balance := range b.Balances {
-					sumB.Add(sumB, balance)
+				priceB := new(big.Rat)
+				priceB, ok = priceB.SetString(subNames[j])
+				if !ok {
+					panic(fmt.Sprintf("bad price: %s", subNames[j]))
 				}
-				return sumA.Cmp(sumB) > 0
+				return priceA.Cmp(priceB) > 0
 			}
-			return subNames[i] < subNames[j]
+			// 总价排序
+			sumA := big.NewRat(0, 1)
+			for _, balance := range a.Balances {
+				sumA.Add(sumA, balance)
+			}
+			sumB := big.NewRat(0, 1)
+			for _, balance := range b.Balances {
+				sumB.Add(sumB, balance)
+			}
+			return sumA.Cmp(sumB) > 0
 		})
 		for _, name := range subNames {
 			printAccount(account.Subs[name], level+1)
