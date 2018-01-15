@@ -43,6 +43,8 @@ func main() {
 	flag.BoolVar(&cmdMonthlyExpenses, "monthly", false, "show monthly expenses")
 	var cmdSQL bool
 	flag.BoolVar(&cmdSQL, "sql", false, "run SQL interface")
+	var flagToday bool
+	flag.BoolVar(&flagToday, "today", false, "set from and to as today")
 
 	flag.Parse()
 
@@ -62,6 +64,11 @@ func main() {
 	}
 	fromTime := parseDate(fromStr).Add(-time.Hour)
 	toTime := parseDate(toStr).Add(time.Hour)
+	if flagToday {
+		now := time.Now()
+		fromTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+		toTime = time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, time.Local)
+	}
 
 	// usage
 	args := flag.Args()
