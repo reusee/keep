@@ -603,6 +603,8 @@ func evalExpr(expr ast.Expr) (*big.Rat, error) {
 			return x.Mul(x, y), nil
 		case token.SUB:
 			return x.Sub(x, y), nil
+		case token.ADD:
+			return x.Add(x, y), nil
 		}
 
 	case *ast.ParenExpr:
