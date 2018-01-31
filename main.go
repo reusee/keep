@@ -262,14 +262,16 @@ func main() {
 				}
 				balance.Add(balance, entry.Amount)
 				if sharePricePattern.MatchString(account.Name) {
-					isNegative := strings.HasPrefix(account.Parent.Name, "-")
-					if !isNegative {
-						if balance.Sign() < 0 {
-							panic(me(nil, "negative balance in stock share account"))
-						}
-					} else {
-						if balance.Sign() > 0 {
-							panic(me(nil, "positive balance in stock share account"))
+					if !flagToday {
+						isNegative := strings.HasPrefix(account.Parent.Name, "-")
+						if !isNegative {
+							if balance.Sign() < 0 {
+								panic(me(nil, "negative balance in stock share account"))
+							}
+						} else {
+							if balance.Sign() > 0 {
+								panic(me(nil, "positive balance in stock share account"))
+							}
 						}
 					}
 				}
