@@ -410,7 +410,8 @@ func main() {
 			if allIsMonths {
 				// 月份排序
 				return subNames[i] < subNames[j]
-			} else if allIsSharePrices {
+			}
+			if allIsSharePrices {
 				// 价格排序
 				priceA := new(big.Rat)
 				priceA, ok := priceA.SetString(subNames[i])
@@ -423,20 +424,20 @@ func main() {
 					panic(fmt.Sprintf("bad price: %s", subNames[j]))
 				}
 				return priceA.Cmp(priceB) > 0
-			} else if allIsLeaf {
-				// 总价排序
-				sumA := big.NewRat(0, 1)
-				for _, balance := range a.Balances {
-					sumA.Add(sumA, balance)
-				}
-				sumB := big.NewRat(0, 1)
-				for _, balance := range b.Balances {
-					sumB.Add(sumB, balance)
-				}
-				return sumA.Cmp(sumB) > 0
 			}
-			// 名称排序
-			return subNames[i] < subNames[j]
+			if level == 0 {
+				return subNames[i] < subNames[j]
+			}
+			// 金额排序
+			sumA := big.NewRat(0, 1)
+			for _, balance := range a.Balances {
+				sumA.Add(sumA, balance)
+			}
+			sumB := big.NewRat(0, 1)
+			for _, balance := range b.Balances {
+				sumB.Add(sumB, balance)
+			}
+			return sumA.Cmp(sumB) > 0
 		})
 		for _, name := range subNames {
 			printAccount(account.Subs[name], level+1)
