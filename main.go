@@ -24,6 +24,8 @@ import (
 	"time"
 	"unicode/utf8"
 	"unsafe"
+
+	"golang.org/x/text/width"
 )
 
 var (
@@ -45,6 +47,8 @@ func main() {
 	flag.BoolVar(&cmdSQL, "sql", false, "run SQL interface")
 	var flagToday bool
 	flag.BoolVar(&flagToday, "today", false, "set from and to as today")
+	var noAmount bool
+	flag.BoolVar(&noAmount, "no-amount", false, "do not display amount")
 
 	flag.Parse()
 
@@ -304,8 +308,8 @@ func main() {
 	calculateProportion(rootAccount)
 
 	// print accounts
-	var printAccount func(account *Account, level int)
-	printAccount = func(account *Account, level int) {
+	var printAccount func(account *Account, level int, nameLen int)
+	printAccount = func(account *Account, level int, nameLen int) {
 		allZero := true
 		for _, balance := range account.Balances {
 			if balance.Cmp(zeroRat) != 0 {
@@ -316,7 +320,11 @@ func main() {
 		if allZero && account != rootAccount {
 			return
 		}
-		pt("%s%s", strings.Repeat(" │    ", level), account.Name)
+		pt(
+			"%s%s",
+			strings.Repeat(" │    ", level),
+			padToLen(account.Name, nameLen),
+		)
 		isStockShareAccount := sharePricePattern.MatchString(account.Name)
 		var currencyNames []string
 		for name := range account.Balances {
@@ -329,7 +337,9 @@ func main() {
 			if p, ok := account.Proportions[name]; ok {
 				proportion = " " + p.Mul(p, big.NewRat(100, 1)).FloatString(3) + "%"
 			}
-			pt(" %s", name)
+			if !noAmount {
+				pt(" %s", name)
+			}
 			if isStockShareAccount {
 				price := new(big.Rat)
 				price, _ = price.SetString(account.Name)
@@ -339,7 +349,9 @@ func main() {
 				nShare.Quo(nShare, price)
 				pt("%s", nShare.FloatString(1))
 			} else {
-				pt("%s", balance.FloatString(2))
+				if !noAmount {
+					pt("%s", balance.FloatString(2))
+				}
 				pt("%s", proportion)
 			}
 		}
@@ -439,11 +451,18 @@ func main() {
 			}
 			return sumA.Cmp(sumB) > 0
 		})
+		subNameLen := 0
 		for _, name := range subNames {
-			printAccount(account.Subs[name], level+1)
+			l := displayWidth(name)
+			if l > subNameLen {
+				subNameLen = l
+			}
+		}
+		for _, name := range subNames {
+			printAccount(account.Subs[name], level+1, subNameLen)
 		}
 	}
-	printAccount(rootAccount, 0)
+	printAccount(rootAccount, 0, 0)
 
 	if cmdProperties {
 		accountNames := map[string]bool{
@@ -638,4 +657,28 @@ func evalExpr(expr ast.Expr) (*big.Rat, error) {
 	pt("%#v\n", expr)
 	return nil, me(nil, "unkndown expr")
 
+}
+
+func displayWidth(s string) int {
+	l := 0
+	for _, r := range s {
+		properties := width.LookupRune(r)
+		switch properties.Kind() {
+		case width.EastAsianWide, width.EastAsianFullwidth:
+			l += 2
+		default:
+			l += 1
+		}
+	}
+	return l
+}
+
+func padToLen(s string, l int) string {
+	b := new(strings.Builder)
+	b.WriteString(s)
+	l -= displayWidth(s)
+	for ; l > 0; l-- {
+		b.WriteByte(' ')
+	}
+	return b.String()
 }
