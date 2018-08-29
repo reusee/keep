@@ -39,8 +39,6 @@ func main() {
 	flag.BoolVar(&noAmount, "no-amount", false, "do not display amount")
 	var thisMonth bool
 	flag.BoolVar(&thisMonth, "this-month", false, "set from/to to this month")
-	var cmdSort bool
-	flag.BoolVar(&cmdSort, "sort", false, "sort blocks")
 
 	flag.Parse()
 
@@ -103,21 +101,57 @@ func main() {
 	if len(block) > 0 {
 		blocks = append(blocks, block)
 	}
+	sort.SliceStable(blocks, func(i, j int) bool {
+		block1 := blocks[i]
+		block2 := blocks[j]
+		return block1[0] < block2[0]
+	})
 
-	if cmdSort {
-		sort.Slice(blocks, func(i, j int) bool {
-			block1 := blocks[i]
-			block2 := blocks[j]
-			return block1[0] < block2[0]
-		})
-		for _, block := range blocks {
-			for _, line := range block {
-				pt("%s\n", line)
-			}
-			pt("\n")
+	formatDone := make(chan struct{})
+	go func() {
+		// format
+		out, err := os.Create(ledgerPath + ".tmp")
+		if err != nil {
+			panic(err)
 		}
-		return
-	}
+		write := func(s string) {
+			if _, err := out.WriteString(s); err != nil {
+				panic(err)
+			}
+		}
+		for _, block := range blocks {
+			write(block[0] + "\n")
+			var lineParts [][]string
+			var widths [3]int
+			for _, line := range block[1:] {
+				parts := blanksPattern.Split(line, 3)
+				lineParts = append(lineParts, parts)
+				for i, part := range parts {
+					width := displayWidth(part)
+					if width > widths[i] {
+						widths[i] = width
+					}
+				}
+			}
+			for _, parts := range lineParts {
+				for i, part := range parts {
+					if i > 0 && len(part) > 0 {
+						write("    ")
+					}
+					write(padToLen(part, widths[i]))
+				}
+				write("\n")
+			}
+			write("\n")
+		}
+		if err := out.Close(); err != nil {
+			panic(err)
+		}
+		if err := os.Rename(ledgerPath+".tmp", ledgerPath); err != nil {
+			panic(err)
+		}
+		close(formatDone)
+	}()
 
 	// transaction
 	type Account struct {
@@ -444,7 +478,7 @@ func main() {
 			return true
 		}()
 
-		sort.Slice(subNames, func(i, j int) bool {
+		sort.SliceStable(subNames, func(i, j int) bool {
 			a := account.Subs[subNames[i]]
 			b := account.Subs[subNames[j]]
 			if allIsMonths {
@@ -532,7 +566,7 @@ func main() {
 				}
 			}
 		}
-		sort.Slice(ts, func(i, j int) bool {
+		sort.SliceStable(ts, func(i, j int) bool {
 			return ts[i].TimeFrom.Before(ts[j].TimeFrom)
 		})
 		for _, t := range ts {
@@ -589,6 +623,7 @@ func main() {
 		}
 	}
 
+	<-formatDone
 }
 
 func parseAmount(str string) (*big.Rat, error) {
