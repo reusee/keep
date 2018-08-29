@@ -228,16 +228,16 @@ func main() {
 					account.TimeFrom = entryTime
 				}
 
+				if entryTime.Before(fromTime) || entryTime.After(toTime) {
+					continue
+				}
+
 				transaction.Entries = append(transaction.Entries, entry)
 			}
 
 		}
 
 		if t.IsZero() {
-			continue
-		}
-		if t.Before(fromTime) || t.After(toTime) {
-			// out of range
 			continue
 		}
 
@@ -521,7 +521,16 @@ func main() {
 			months = append(months, month)
 		}
 		sort.Strings(months)
+		skip := false
 		for _, month := range months {
+			monthTime, err := time.Parse("2006-01", month)
+			if err != nil {
+				panic(err)
+			}
+			if monthTime.Sub(time.Now()) > time.Hour*24*90 {
+				skip = true
+				continue
+			}
 			entries := monthEntries[month]
 			sums := make(map[string]*big.Rat)
 			for _, entry := range entries {
@@ -535,6 +544,9 @@ func main() {
 				pt(" %s%s", cur, sum.FloatString(2))
 			}
 			pt("\n")
+		}
+		if skip {
+			pt("[...]\n")
 		}
 	}
 
