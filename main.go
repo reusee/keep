@@ -26,9 +26,9 @@ var (
 
 func main() {
 	var fromStr string
-	flag.StringVar(&fromStr, "from", "1000-01-01", "from date")
+	flag.StringVar(&fromStr, "from", "", "from date")
 	var toStr string
-	flag.StringVar(&toStr, "to", "9999-01-01", "to date")
+	flag.StringVar(&toStr, "to", "", "to date")
 	var cmdProperties bool
 	flag.BoolVar(&cmdProperties, "props", false, "show properties")
 	var cmdMonthlyExpenses bool
@@ -37,10 +37,23 @@ func main() {
 	flag.BoolVar(&flagToday, "today", false, "set from and to as today")
 	var noAmount bool
 	flag.BoolVar(&noAmount, "no-amount", false, "do not display amount")
+	var thisMonth bool
+	flag.BoolVar(&thisMonth, "this-month", false, "set from/to to this month")
 
 	flag.Parse()
 
 	// options
+	var fromTime, toTime time.Time
+	if flagToday {
+		now := time.Now()
+		fromTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+		toTime = time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, time.Local)
+	}
+	if thisMonth {
+		now := time.Now()
+		fromTime = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+		toTime = time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.Local)
+	}
 	parseDate := func(str string) time.Time {
 		str = strings.Replace(str, "/", "-", -1)
 		str = strings.Replace(str, ".", "-", -1)
@@ -48,12 +61,11 @@ func main() {
 		ce(err, "bad date: %s", str)
 		return t
 	}
-	fromTime := parseDate(fromStr).Add(-time.Hour)
-	toTime := parseDate(toStr).Add(time.Hour)
-	if flagToday {
-		now := time.Now()
-		fromTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
-		toTime = time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, time.Local)
+	if fromStr != "" {
+		fromTime = parseDate(fromStr).Add(-time.Hour)
+	}
+	if toStr != "" {
+		toTime = parseDate(toStr).Add(time.Hour)
 	}
 
 	// usage
@@ -228,7 +240,10 @@ func main() {
 					account.TimeFrom = entryTime
 				}
 
-				if entryTime.Before(fromTime) || entryTime.After(toTime) {
+				if !fromTime.IsZero() && entryTime.Before(fromTime) {
+					continue
+				}
+				if !toTime.IsZero() && entryTime.After(toTime) {
 					continue
 				}
 
