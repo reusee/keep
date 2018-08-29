@@ -19,7 +19,6 @@ import (
 	"os"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -36,9 +35,9 @@ var (
 
 func main() {
 	var fromStr string
-	flag.StringVar(&fromStr, "from", "0-1-1", "from date")
+	flag.StringVar(&fromStr, "from", "1000-01-01", "from date")
 	var toStr string
-	flag.StringVar(&toStr, "to", "9999-1-1", "to date")
+	flag.StringVar(&toStr, "to", "9999-01-01", "to date")
 	var cmdProperties bool
 	flag.BoolVar(&cmdProperties, "props", false, "show properties")
 	var cmdMonthlyExpenses bool
@@ -54,17 +53,11 @@ func main() {
 
 	// options
 	parseDate := func(str string) time.Time {
-		parts := dateSepPattern.Split(str, -1)
-		if len(parts) != 3 {
-			panic(me(nil, "bad date: %s", str))
-		}
-		year, err := strconv.Atoi(parts[0])
-		ce(err, "parse year: %s", str)
-		month, err := strconv.Atoi(parts[1])
-		ce(err, "parse month: %s", str)
-		day, err := strconv.Atoi(parts[2])
-		ce(err, "parse day: %s", str)
-		return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+		str = strings.Replace(str, "/", "-", -1)
+		str = strings.Replace(str, ".", "-", -1)
+		t, err := time.Parse("2006-01-02", str)
+		ce(err, "bad date: %s", str)
+		return t
 	}
 	fromTime := parseDate(fromStr).Add(-time.Hour)
 	toTime := parseDate(toStr).Add(time.Hour)
@@ -117,18 +110,21 @@ func main() {
 		Proportions map[string]*big.Rat
 	}
 	type Entry struct {
+		Time  time.Time
+		Year  int
+		Month int
+		Day   int
+
 		Account     *Account
 		Currency    string
 		Amount      *big.Rat
 		Description string
 	}
 	type Transaction struct {
-		Year        int
-		Month       int
-		Day         int
-		Time        time.Time
 		Description string
 		Entries     []*Entry
+		TimeFrom    time.Time
+		TimeTo      time.Time
 	}
 	var transactions []*Transaction
 
@@ -180,6 +176,7 @@ func main() {
 		transaction := new(Transaction)
 
 		// parse
+		var t time.Time
 		for _, line := range block {
 			if strings.HasPrefix(line, "#") {
 				continue
@@ -192,23 +189,13 @@ func main() {
 				if len(parts) != 2 {
 					panic(me(nil, "bad transaction header: %s", line))
 				}
-
-				dateStr := parts[0]
-				dateParts := dateSepPattern.Split(dateStr, -1)
-				if len(dateParts) != 3 {
-					panic(me(nil, "bad date: %s", line))
+				t = parseDate(parts[0])
+				if transaction.TimeFrom.IsZero() || t.Before(transaction.TimeFrom) {
+					transaction.TimeFrom = t
 				}
-				year, err := strconv.Atoi(dateParts[0])
-				ce(err, "parse year: %s", line)
-				transaction.Year = year
-				month, err := strconv.Atoi(dateParts[1])
-				ce(err, "parse month: %s", line)
-				transaction.Month = month
-				day, err := strconv.Atoi(dateParts[2])
-				ce(err, "parse day: %s", line)
-				transaction.Day = day
-				transaction.Time = time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
-
+				if transaction.TimeTo.IsZero() || t.After(transaction.TimeTo) {
+					transaction.TimeTo = t
+				}
 				transaction.Description = parts[1]
 
 			} else {
@@ -236,17 +223,27 @@ func main() {
 					entry.Description = parts[2]
 				}
 
+				if inlineDate := inlineDatePattern.FindString(entry.Description); inlineDate != "" {
+					inlineT := parseDate(inlineDate[1:])
+					entry.Time = inlineT
+					entry.Year = inlineT.Year()
+					entry.Month = int(inlineT.Month())
+					entry.Day = inlineT.Day()
+				} else {
+					entry.Time = t
+					entry.Year = t.Year()
+					entry.Month = int(t.Month())
+					entry.Day = t.Day()
+				}
+
 				transaction.Entries = append(transaction.Entries, entry)
 			}
 
 		}
 
-		if transaction.Year == 0 {
-			// empty
+		if t.IsZero() {
 			continue
 		}
-		t := time.Date(transaction.Year, time.Month(transaction.Month), transaction.Day,
-			0, 0, 0, 0, time.Local)
 		if t.Before(fromTime) || t.After(toTime) {
 			// out of range
 			continue
@@ -493,10 +490,10 @@ func main() {
 			}
 		}
 		sort.Slice(ts, func(i, j int) bool {
-			return ts[i].Time.Before(ts[j].Time)
+			return ts[i].TimeFrom.Before(ts[j].TimeFrom)
 		})
 		for _, t := range ts {
-			pt("%s %s\n", t.Time.Format("01-02"), t.Description)
+			pt("%s %s\n", t.TimeFrom.Format("01-02"), t.Description)
 		}
 	}
 
@@ -510,7 +507,7 @@ func main() {
 			for _, entry := range transaction.Entries {
 				if accounts[entry.Account] {
 					// is expense
-					monthStr := fmt.Sprintf("%04d-%02d", transaction.Year, transaction.Month)
+					monthStr := fmt.Sprintf("%04d-%02d", entry.Year, entry.Month)
 					monthEntries[monthStr] = append(monthEntries[monthStr], entry)
 				}
 			}
