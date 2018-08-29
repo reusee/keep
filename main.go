@@ -1,13 +1,5 @@
 package main
 
-/*
-#include <sqlite3.h>
-#include <stdlib.h>
-
-#cgo LDFLAGS: -lsqlite3
-*/
-import "C"
-
 import (
 	"flag"
 	"fmt"
@@ -22,7 +14,6 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
-	"unsafe"
 
 	"golang.org/x/text/width"
 )
@@ -42,8 +33,6 @@ func main() {
 	flag.BoolVar(&cmdProperties, "props", false, "show properties")
 	var cmdMonthlyExpenses bool
 	flag.BoolVar(&cmdMonthlyExpenses, "monthly", false, "show monthly expenses")
-	var cmdSQL bool
-	flag.BoolVar(&cmdSQL, "sql", false, "run SQL interface")
 	var flagToday bool
 	flag.BoolVar(&flagToday, "today", false, "set from and to as today")
 	var noAmount bool
@@ -532,65 +521,6 @@ func main() {
 			}
 			pt("\n")
 		}
-	}
-
-	if cmdSQL {
-
-		// db object
-		var db *C.sqlite3
-		errno := C.sqlite3_open(C.CString(":memory:"), &db)
-		defer C.sqlite3_close(db)
-		if errno > 0 {
-			panic(me(nil, "%s", C.GoString(C.sqlite3_errmsg(db))))
-		}
-		exec := func(query string) error {
-			cQuery := C.CString(query)
-			defer C.free(unsafe.Pointer(cQuery))
-			var errmsg *C.char
-			errno := C.sqlite3_exec(db, cQuery, nil, nil, &errmsg)
-			if errno > 0 {
-				return me(nil, "%s\n%s", C.GoString(C.sqlite3_errmsg(db)), C.GoString(errmsg))
-			}
-			return nil
-		}
-
-		// create table
-		if err := exec(`CREATE TABLE accounts (
-			id INTEGER PRIMARY KEY,
-			name TEXT NOT NULL,
-			parent_id INTEGER,
-			FOREIGN KEY (parent_id) REFERENCES accounts(id)
-			)
-			`,
-		); err != nil {
-			panic(err)
-		}
-		if err := exec(`CREATE TABLE transactions (
-			id INTEGER PRIMARY KEY,
-			year INT NOT NULL,
-			month INT NOT NULL,
-			day INT NOT NULL,
-			description TEXT
-			)
-			`,
-		); err != nil {
-			panic(err)
-		}
-		if err := exec(`CREATE TABLE entries (
-			id INTEGER PRIMARY KEY,
-			transaction_id INTEGER NOT NULL,
-			account_id INTEGER NOT NULL,
-			currency TEXT NOT NULL,
-			amount NUMERIC NOT NULL,
-			description TEXT,
-			FOREIGN KEY (account_id) REFERENCES accounts(id),
-			FOREIGN KEY (transaction_id) REFERENCES transactions(id)
-			)
-			`,
-		); err != nil {
-			panic(err)
-		}
-
 	}
 
 }
