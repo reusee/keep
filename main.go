@@ -30,7 +30,7 @@ import (
 var (
 	accountSeparatePattern = regexp.MustCompile(`：|:`)
 	sharePricePattern      = regexp.MustCompile(`[0-9]+\.[0-9]{3}`)
-	monthPattern           = regexp.MustCompile(`^[0-9]{4}$`)
+	monthPattern           = regexp.MustCompile(`^[0-9x]{4}$`)
 )
 
 func main() {
