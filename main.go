@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -107,13 +108,10 @@ func main() {
 		return block1[0] < block2[0]
 	})
 
-	formatDone := make(chan struct{})
+	formatDone := make(chan bool)
 	go func() {
 		// format
-		out, err := os.Create(ledgerPath + ".tmp")
-		if err != nil {
-			panic(err)
-		}
+		out := new(bytes.Buffer)
 		write := func(s string) {
 			if _, err := out.WriteString(s); err != nil {
 				panic(err)
@@ -144,13 +142,17 @@ func main() {
 			}
 			write("\n")
 		}
-		if err := out.Close(); err != nil {
-			panic(err)
+		formatted := false
+		if !bytes.Equal(contentBytes, out.Bytes()) {
+			if err := ioutil.WriteFile(ledgerPath+".tmp", out.Bytes(), 0644); err != nil {
+				panic(err)
+			}
+			if err := os.Rename(ledgerPath+".tmp", ledgerPath); err != nil {
+				panic(err)
+			}
+			formatted = true
 		}
-		if err := os.Rename(ledgerPath+".tmp", ledgerPath); err != nil {
-			panic(err)
-		}
-		close(formatDone)
+		formatDone <- formatted
 	}()
 
 	// transaction
@@ -623,7 +625,10 @@ func main() {
 		}
 	}
 
-	<-formatDone
+	formatted := <-formatDone
+	if formatted {
+		pt("formatted\n")
+	}
 }
 
 func parseAmount(str string) (*big.Rat, error) {
