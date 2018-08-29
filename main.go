@@ -39,6 +39,8 @@ func main() {
 	flag.BoolVar(&noAmount, "no-amount", false, "do not display amount")
 	var thisMonth bool
 	flag.BoolVar(&thisMonth, "this-month", false, "set from/to to this month")
+	var cmdSort bool
+	flag.BoolVar(&cmdSort, "sort", false, "sort blocks")
 
 	flag.Parse()
 
@@ -100,6 +102,21 @@ func main() {
 	}
 	if len(block) > 0 {
 		blocks = append(blocks, block)
+	}
+
+	if cmdSort {
+		sort.Slice(blocks, func(i, j int) bool {
+			block1 := blocks[i]
+			block2 := blocks[j]
+			return block1[0] < block2[0]
+		})
+		for _, block := range blocks {
+			for _, line := range block {
+				pt("%s\n", line)
+			}
+			pt("\n")
+		}
+		return
 	}
 
 	// transaction
@@ -173,6 +190,7 @@ func main() {
 	}
 
 	// collect transactions
+	var lastT time.Time
 	for _, block := range blocks {
 		n := 0
 		transaction := new(Transaction)
@@ -199,6 +217,12 @@ func main() {
 					transaction.TimeTo = t
 				}
 				transaction.Description = parts[1]
+
+				if !lastT.IsZero() && t.Before(lastT) {
+					pt("%s\n", block[0])
+					panic("may be bad time")
+				}
+				lastT = t
 
 			} else {
 				// entry
