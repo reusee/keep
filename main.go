@@ -97,6 +97,7 @@ func main() {
 		Parent      *Account
 		Balances    map[string]*big.Rat
 		Proportions map[string]*big.Rat
+		TimeFrom    time.Time
 	}
 	type Entry struct {
 		Time  time.Time
@@ -212,17 +213,19 @@ func main() {
 					entry.Description = parts[2]
 				}
 
+				var entryTime time.Time
 				if inlineDate := inlineDatePattern.FindString(entry.Description); inlineDate != "" {
-					inlineT := parseDate(inlineDate[1:])
-					entry.Time = inlineT
-					entry.Year = inlineT.Year()
-					entry.Month = int(inlineT.Month())
-					entry.Day = inlineT.Day()
+					entryTime = parseDate(inlineDate[1:])
 				} else {
-					entry.Time = t
-					entry.Year = t.Year()
-					entry.Month = int(t.Month())
-					entry.Day = t.Day()
+					entryTime = t
+				}
+				entry.Time = entryTime
+				entry.Year = entryTime.Year()
+				entry.Month = int(entryTime.Month())
+				entry.Day = entryTime.Day()
+
+				if account.TimeFrom.IsZero() || entryTime.Before(account.TimeFrom) {
+					account.TimeFrom = entryTime
 				}
 
 				transaction.Entries = append(transaction.Entries, entry)
@@ -444,8 +447,20 @@ func main() {
 				subNameLen = l
 			}
 		}
+		skip := false
 		for _, name := range subNames {
-			printAccount(account.Subs[name], level+1, subNameLen)
+			subAccount := account.Subs[name]
+			if subAccount.TimeFrom.Sub(time.Now()) > time.Hour*24*365 {
+				skip = true
+				continue
+			}
+			printAccount(subAccount, level+1, subNameLen)
+		}
+		if skip {
+			pt(
+				"%s[...]\n",
+				strings.Repeat(" │    ", level+1),
+			)
 		}
 	}
 	printAccount(rootAccount, 0, 0)
