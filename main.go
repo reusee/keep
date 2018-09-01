@@ -234,9 +234,6 @@ func main() {
 		// parse
 		var t time.Time
 		for _, line := range block {
-			if strings.HasPrefix(line, "#") {
-				continue
-			}
 			n++
 
 			if n == 1 {
