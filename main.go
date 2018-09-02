@@ -136,7 +136,12 @@ func main() {
 					if i > 0 && len(part) > 0 {
 						write("    ")
 					}
-					write(padToLen(part, widths[i]))
+					if i == len(parts) - 1 {
+						part = strings.TrimRight(part, " ")
+					} else {
+						part = padToLen(part, widths[i])
+					}
+					write(part)
 				}
 				write("\n")
 			}
