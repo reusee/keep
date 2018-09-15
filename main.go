@@ -85,27 +85,40 @@ func main() {
 	content = strings.Replace(content, "\r\n", "\n", -1)
 	content = strings.Replace(content, "\r", "\n", -1)
 
+	type Block struct {
+		Line     int
+		Contents []string
+	}
+
 	// parse blocks
-	var blocks [][]string
-	var block []string
+	var blocks []Block
+	var contents []string
+	i := 0
 	for _, line := range strings.Split(content, "\n") {
+		i++
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
-			if len(block) > 0 {
-				blocks = append(blocks, block)
-				block = []string{}
+			if len(contents) > 0 {
+				blocks = append(blocks, Block{
+					Line:     i - len(contents),
+					Contents: contents,
+				})
+				contents = []string{}
 			}
 		} else {
-			block = append(block, line)
+			contents = append(contents, line)
 		}
 	}
-	if len(block) > 0 {
-		blocks = append(blocks, block)
+	if len(contents) > 0 {
+		blocks = append(blocks, Block{
+			Line:     i - len(contents),
+			Contents: contents,
+		})
 	}
 	sort.SliceStable(blocks, func(i, j int) bool {
 		block1 := blocks[i]
 		block2 := blocks[j]
-		return block1[0] < block2[0]
+		return block1.Contents[0] < block2.Contents[0]
 	})
 
 	formatDone := make(chan bool)
@@ -118,10 +131,10 @@ func main() {
 			}
 		}
 		for _, block := range blocks {
-			write(block[0] + "\n")
+			write(block.Contents[0] + "\n")
 			var lineParts [][]string
 			var widths [3]int
-			for _, line := range block[1:] {
+			for _, line := range block.Contents[1:] {
 				parts := blanksPattern.Split(line, 3)
 				lineParts = append(lineParts, parts)
 				for i, part := range parts {
@@ -236,16 +249,26 @@ func main() {
 		n := 0
 		transaction := new(Transaction)
 
+		reportError := func(format string, args ...interface{}) {
+			pt(
+				"%s at line %d:\n%s",
+				fmt.Sprintf(format, args...),
+				block.Line,
+				strings.Join(block.Contents, "\n"),
+			)
+			panic("bad block")
+		}
+
 		// parse
 		var t time.Time
-		for _, line := range block {
+		for _, line := range block.Contents {
 			n++
 
 			if n == 1 {
 				// transaction header
 				parts := blanksPattern.Split(line, 2)
 				if len(parts) != 2 {
-					panic(me(nil, "bad transaction header: %s", line))
+					reportError("bad header")
 				}
 				t = parseDate(parts[0])
 				if transaction.TimeFrom.IsZero() || t.Before(transaction.TimeFrom) {
@@ -257,8 +280,7 @@ func main() {
 				transaction.Description = parts[1]
 
 				if !lastT.IsZero() && t.Before(lastT) {
-					pt("%s\n", block[0])
-					panic("may be bad time")
+					reportError("bad time")
 				}
 				lastT = t
 
@@ -266,7 +288,7 @@ func main() {
 				// entry
 				parts := blanksPattern.Split(line, 3)
 				if len(parts) < 2 {
-					panic(me(nil, "bad entry: %s", line))
+					reportError("bad entry")
 				}
 				entry := new(Entry)
 
@@ -279,7 +301,7 @@ func main() {
 				amountStr := parts[1][runeSize:]
 				amount, err := parseAmount(amountStr)
 				if err != nil {
-					panic(me(err, "bad amount: %s", amountStr))
+					reportError("bad amount")
 				}
 				entry.Amount = amount
 
@@ -337,11 +359,11 @@ func main() {
 							strings.HasPrefix(account.Name, "-")
 						if !isNegative {
 							if balance.Sign() < 0 {
-								panic(me(nil, "negative balance in stock share account"))
+								reportError("negative balance in stock share account")
 							}
 						} else {
 							if balance.Sign() > 0 {
-								panic(me(nil, "positive balance in stock share account"))
+								reportError("positive balance in stock share account")
 							}
 						}
 					}
@@ -350,7 +372,7 @@ func main() {
 			}
 		}
 		if !(sum.Cmp(zeroRat) == 0) {
-			panic(me(nil, "not balanced: %s", strings.Join(block, "\n")))
+			reportError("not balanced")
 		}
 
 		transactions = append(transactions, transaction)
