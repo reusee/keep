@@ -566,15 +566,14 @@ func main() {
 
 	if cmdProperties {
 		accountNames := map[string]bool{
-			"书籍":   true,
-			"保健品":  true,
-			"性用品":  true,
-			"消耗品":  true,
-			"物品":   true,
-			"电子":   true,
 			"数码":   true,
-			"药物":   true,
+			"物品":   true,
 			"衣物服饰": true,
+			"消耗品":  true,
+			"保健品":  true,
+			"书籍":   true,
+			"药物":   true,
+			"性用品":  true,
 		}
 		accounts := map[*Account]bool{}
 		for name, account := range rootAccount.Subs["支出"].Subs {
