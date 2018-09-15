@@ -136,7 +136,7 @@ func main() {
 					if i > 0 && len(part) > 0 {
 						write("    ")
 					}
-					if i == len(parts) - 1 {
+					if i == len(parts)-1 {
 						part = strings.TrimRight(part, " ")
 					} else {
 						part = padToLen(part, widths[i])
@@ -574,7 +574,7 @@ func main() {
 			return ts[i].TimeFrom.Before(ts[j].TimeFrom)
 		})
 		for _, t := range ts {
-			pt("%s %s\n", t.TimeFrom.Format("01-02"), t.Description)
+			pt("%s %s\n", t.TimeFrom.Format("2006-01-02"), t.Description)
 		}
 	}
 
