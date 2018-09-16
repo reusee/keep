@@ -53,7 +53,7 @@ func main() {
 	if thisMonth {
 		now := time.Now()
 		fromTime = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
-		toTime = time.Date(now.Year(), now.Month()+1, 0, 0, 0, 0, 0, time.Local)
+		toTime = time.Date(now.Year(), now.Month()+1, 0, 23, 59, 59, 999, time.Local)
 	}
 	parseDate := func(str string) time.Time {
 		str = strings.Replace(str, "/", "-", -1)
@@ -67,6 +67,13 @@ func main() {
 	}
 	if toStr != "" {
 		toTime = parseDate(toStr).Add(time.Hour)
+	}
+
+	if !fromTime.IsZero() {
+		pt("from %s\n", fromTime.Format("2006-01-02"))
+	}
+	if !toTime.IsZero() {
+		pt("to %s\n", toTime.Format("2006-01-02"))
 	}
 
 	// usage
