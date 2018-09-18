@@ -23,6 +23,9 @@ var (
 	accountSeparatePattern = regexp.MustCompile(`：|:`)
 	sharePricePattern      = regexp.MustCompile(`[0-9]+\.[0-9]{3}`)
 	monthPattern           = regexp.MustCompile(`^[0-9x]{4}$`)
+	blanksPattern          = regexp.MustCompile(`\s+`)
+	inlineDatePattern      = regexp.MustCompile(`@[0-9]{4}[/.-][0-9]{2}[/.-][0-9]{2}`)
+	commentLinePattern     = regexp.MustCompile(`^\s*(#|//)`)
 )
 
 func main() {
@@ -292,6 +295,10 @@ func main() {
 				lastT = t
 
 			} else {
+				if commentLinePattern.MatchString(line) {
+					continue
+				}
+
 				// entry
 				parts := blanksPattern.Split(line, 3)
 				if len(parts) < 2 {
