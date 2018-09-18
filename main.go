@@ -96,8 +96,9 @@ func main() {
 	content = strings.Replace(content, "\r", "\n", -1)
 
 	type Block struct {
-		Line     int
-		Contents []string
+		Line       int
+		HeaderDate string
+		Contents   []string
 	}
 
 	// parse blocks
@@ -109,9 +110,11 @@ func main() {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
 			if len(contents) > 0 {
+				date := strings.Split(line, " ")[0]
 				blocks = append(blocks, Block{
-					Line:     i - len(contents),
-					Contents: contents,
+					Line:       i - len(contents),
+					HeaderDate: date,
+					Contents:   contents,
 				})
 				contents = []string{}
 			}
@@ -128,7 +131,10 @@ func main() {
 	sort.SliceStable(blocks, func(i, j int) bool {
 		block1 := blocks[i]
 		block2 := blocks[j]
-		return block1.Contents[0] < block2.Contents[0]
+		if block1.HeaderDate != block2.HeaderDate {
+			return block1.HeaderDate < block2.HeaderDate
+		}
+		return block1.Line < block2.Line
 	})
 
 	formatDone := make(chan bool)
