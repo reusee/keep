@@ -28,6 +28,34 @@ var (
 	commentLinePattern     = regexp.MustCompile(`^\s*(#|//)`)
 )
 
+type Account struct {
+	Name        string
+	Subs        map[string]*Account
+	Parent      *Account
+	Balances    map[string]*big.Rat
+	Proportions map[string]*big.Rat
+	TimeFrom    time.Time
+}
+
+type Entry struct {
+	Time  time.Time
+	Year  int
+	Month int
+	Day   int
+
+	Account     *Account
+	Currency    string
+	Amount      *big.Rat
+	Description string
+}
+
+type Transaction struct {
+	Description string
+	Entries     []*Entry
+	TimeFrom    time.Time
+	TimeTo      time.Time
+}
+
 func main() {
 	var fromStr string
 	flag.StringVar(&fromStr, "from", "", "from date")
@@ -43,6 +71,8 @@ func main() {
 	flag.BoolVar(&noAmount, "no-amount", false, "do not display amount")
 	var thisMonth bool
 	flag.BoolVar(&thisMonth, "this-month", false, "set from/to to this month")
+	var cmdSQL bool
+	flag.BoolVar(&cmdSQL, "sql", false, "load and show SQL ui")
 
 	flag.Parse()
 
@@ -190,31 +220,6 @@ func main() {
 	}()
 
 	// transaction
-	type Account struct {
-		Name        string
-		Subs        map[string]*Account
-		Parent      *Account
-		Balances    map[string]*big.Rat
-		Proportions map[string]*big.Rat
-		TimeFrom    time.Time
-	}
-	type Entry struct {
-		Time  time.Time
-		Year  int
-		Month int
-		Day   int
-
-		Account     *Account
-		Currency    string
-		Amount      *big.Rat
-		Description string
-	}
-	type Transaction struct {
-		Description string
-		Entries     []*Entry
-		TimeFrom    time.Time
-		TimeTo      time.Time
-	}
 	var transactions []*Transaction
 
 	rootAccount := &Account{
@@ -396,6 +401,11 @@ func main() {
 		}
 
 		transactions = append(transactions, transaction)
+	}
+
+	if cmdSQL {
+		sqlInterface(rootAccount, transactions)
+		return
 	}
 
 	// calculate proportions
