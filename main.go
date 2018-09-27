@@ -61,10 +61,6 @@ func main() {
 	flag.StringVar(&fromStr, "from", "", "from date")
 	var toStr string
 	flag.StringVar(&toStr, "to", "", "to date")
-	var cmdProperties bool
-	flag.BoolVar(&cmdProperties, "props", false, "show properties")
-	var cmdMonthlyExpenses bool
-	flag.BoolVar(&cmdMonthlyExpenses, "monthly", false, "show monthly expenses")
 	var flagToday bool
 	flag.BoolVar(&flagToday, "today", false, "set from and to as today")
 	var noAmount bool
@@ -593,90 +589,6 @@ func main() {
 		}
 	}
 	printAccount(rootAccount, 0, 0)
-
-	if cmdProperties {
-		accountNames := map[string]bool{
-			"数码":   true,
-			"物品":   true,
-			"衣物服饰": true,
-			"消耗品":  true,
-			"保健品":  true,
-			"书籍":   true,
-			"药物":   true,
-			"性用品":  true,
-		}
-		accounts := map[*Account]bool{}
-		for name, account := range rootAccount.Subs["支出"].Subs {
-			if accountNames[name] {
-				accounts[account] = true
-			}
-		}
-		var ts []*Transaction
-	loop_t:
-		for _, t := range transactions {
-			for _, entry := range t.Entries {
-				if accounts[entry.Account] {
-					ts = append(ts, t)
-					continue loop_t
-				}
-			}
-		}
-		sort.SliceStable(ts, func(i, j int) bool {
-			return ts[i].TimeFrom.Before(ts[j].TimeFrom)
-		})
-		for _, t := range ts {
-			pt("%s %s\n", t.TimeFrom.Format("2006-01-02"), t.Description)
-		}
-	}
-
-	if cmdMonthlyExpenses {
-		accounts := make(map[*Account]bool)
-		for _, account := range rootAccount.Subs["支出"].Subs {
-			accounts[account] = true
-		}
-		monthEntries := make(map[string][]*Entry)
-		for _, transaction := range transactions {
-			for _, entry := range transaction.Entries {
-				if accounts[entry.Account] {
-					// is expense
-					monthStr := fmt.Sprintf("%04d-%02d", entry.Year, entry.Month)
-					monthEntries[monthStr] = append(monthEntries[monthStr], entry)
-				}
-			}
-		}
-		var months []string
-		for month := range monthEntries {
-			months = append(months, month)
-		}
-		sort.Strings(months)
-		skip := false
-		for _, month := range months {
-			monthTime, err := time.Parse("2006-01", month)
-			if err != nil {
-				panic(err)
-			}
-			if monthTime.Sub(time.Now()) > time.Hour*24*90 {
-				skip = true
-				continue
-			}
-			entries := monthEntries[month]
-			sums := make(map[string]*big.Rat)
-			for _, entry := range entries {
-				if sums[entry.Currency] == nil {
-					sums[entry.Currency] = big.NewRat(0, 1)
-				}
-				sums[entry.Currency].Add(sums[entry.Currency], entry.Amount)
-			}
-			pt("%s", month)
-			for cur, sum := range sums {
-				pt(" %s%s", cur, sum.FloatString(2))
-			}
-			pt("\n")
-		}
-		if skip {
-			pt("[...]\n")
-		}
-	}
 
 	formatted := <-formatDone
 	if formatted {
