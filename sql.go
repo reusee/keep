@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -49,7 +50,8 @@ func sqlInterface(
 		fail("%v", err)
 	}
 	defer db.Close()
-	if _, err := db.Exec(`
+	tx := db.MustBegin()
+	if _, err := tx.Exec(`
 		CREATE TABLE entries (
 			id bigserial primary key,
 			transaction bigint,
@@ -64,7 +66,11 @@ func sqlInterface(
 	); err != nil {
 		fail("%v", err)
 	}
-	tx := db.MustBegin()
+	for _, view := range views {
+		if _, err := tx.Exec(view); err != nil {
+			fail("%v", err)
+		}
+	}
 	for tid, transaction := range transactions {
 		for _, entry := range transaction.Entries {
 			if _, err := tx.Exec(`
@@ -106,6 +112,14 @@ func sqlInterface(
 	}
 	pt("data loaded\n")
 
+	sigs := make(chan os.Signal)
+	go func() {
+		for {
+			<-sigs
+		}
+	}()
+	signal.Notify(sigs, os.Interrupt)
+
 	psql := exec.Command("psql", fmt.Sprintf("postgres://localhost:%d/postgres", port))
 	psql.Stdout = os.Stdout
 	psql.Stdin = os.Stdin
@@ -113,4 +127,78 @@ func sqlInterface(
 	if err := psql.Run(); err != nil {
 		fail("%v", err)
 	}
+}
+
+var views = []string{
+	// props
+	`
+	create view props as 
+	select distinct on (time, transaction)
+	time, transaction_description
+	from entries
+	where account[1] = '支出'
+	and account[2] in (
+		'数码',
+		'物品',
+		'衣物服饰',
+		'消耗品',
+		'保健品',
+		'书籍',
+		'药物',
+		'性用品'
+	)
+	order by time desc, transaction
+	`,
+
+	// monthly_expense
+	`
+	create view monthly_expense as 
+	select 
+	to_char(date_trunc('month', time), 'YYYY-MM') as month, 
+	currency, 
+	sum(amount),
+	(
+		select string_agg(
+			account || currency || amount::text,
+			E'\n'
+		) from (
+			select account[2] as account, currency, sum(amount) as amount
+			from unnest(array_agg(id)) as id
+			join entries e2 using (id)
+			group by account[2], currency
+			order by amount desc
+		) t0
+	)
+	from entries 
+	where account[1] = '支出' 
+	group by date_trunc('month', time), currency 
+	order by month desc, currency asc
+	`,
+
+	// monthly_income
+	`
+	create view monthly_income as 
+	select 
+	to_char(date_trunc('month', time), 'YYYY-MM') as month, 
+	currency, 
+	sum(amount),
+	(
+		select string_agg(
+			account || currency || amount::text,
+			E'\n'
+		) from (
+			select account[2] as account, currency, sum(amount) as amount
+			from unnest(array_agg(id)) as id
+			join entries e2 using (id)
+			group by account[2], currency
+			order by amount asc
+		) t0
+	)
+	from entries 
+	where account[1] = '收入' 
+	group by date_trunc('month', time), currency 
+	order by month desc, currency asc
+	`,
+
+	//
 }
