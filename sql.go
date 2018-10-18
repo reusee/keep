@@ -200,5 +200,26 @@ var views = []string{
 	order by month desc, currency asc
 	`,
 
+	// this year expenses
+	`
+	create view this_year_expenses as
+	select 
+	currency, sum(amount), account[2], 
+	jsonb_pretty(jsonb_agg(
+			to_char(time, 'YYYY-MM-DD') 
+			|| ' ' 
+			|| currency 
+			|| amount::numeric(10,2)
+			|| ' ' 
+			|| transaction_description 
+			order by amount desc, time desc
+	)) 
+	from entries
+	where extract(year from time) = extract(year from now())
+	and account[1] = '支出' 
+	group by account[2],currency 
+	order by sum desc
+	`,
+
 	//
 }
