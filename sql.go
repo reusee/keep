@@ -150,53 +150,55 @@ var views = []string{
 	order by time desc, transaction
 	`,
 
-	// monthly_expense
+	// monthly
 	`
-	create view monthly_expense as 
+	create view monthly as 
 	select 
-	to_char(date_trunc('month', time), 'YYYY-MM') as month, 
-	currency, 
-	sum(amount),
-	(
-		select string_agg(
-			account || currency || amount::text,
-			E'\n'
-		) from (
-			select account[2] as account, currency, sum(amount) as amount
-			from unnest(array_agg(id)) as id
-			join entries e2 using (id)
-			group by account[2], currency
-			order by amount desc
-		) t0
-	)
-	from entries 
-	where account[1] = '支出' 
-	group by date_trunc('month', time), currency 
-	order by month desc, currency asc
-	`,
 
-	// monthly_income
-	`
-	create view monthly_income as 
-	select 
-	to_char(date_trunc('month', time), 'YYYY-MM') as month, 
-	currency, 
-	sum(amount),
+	to_char(date_trunc('month', time), 'YYYY-MM') as month,
+
+	'支出' || currency || (sum(amount) filter (where account[1] = '支出'))::numeric(20,2)::text as expenses,
 	(
 		select string_agg(
-			account || currency || amount::text,
+			currency || amount::numeric(20,2)::text || ' ' || account,
 			E'\n'
+			order by amount desc
 		) from (
 			select account[2] as account, currency, sum(amount) as amount
-			from unnest(array_agg(id)) as id
+			from unnest(
+				array_agg(id) filter (where account[1] = '支出')
+			) as id
 			join entries e2 using (id)
 			group by account[2], currency
-			order by amount asc
 		) t0
-	)
-	from entries 
-	where account[1] = '收入' 
-	group by date_trunc('month', time), currency 
+	) as expenses_detail,
+
+	'收入' || currency || (sum(amount) filter (where account[1] = '收入'))::numeric(20,2)::text as income,
+	(
+		select string_agg(
+			currency || amount::numeric(20, 2)::text || ' ' || account,
+			E'\n'
+			order by amount asc
+		) from (
+			select account[2] as account, currency, sum(amount) as amount
+			from unnest(
+				array_agg(id) filter (where account[1] = '收入')
+			) as id
+			join entries e2 using (id)
+			group by account[2], currency
+		) t0
+	) as income_detail,
+
+	'净资产' || currency || (
+		-sum(amount) filter (where account[1] = '收入')
+		-
+		sum(amount) filter (where account[1] = '支出')
+	)::numeric(20,2)::text
+
+	from
+	entries
+
+	group by date_trunc('month', time), currency
 	order by month desc, currency asc
 	`,
 
