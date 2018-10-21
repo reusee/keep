@@ -157,43 +157,102 @@ var views = []string{
 
 	to_char(date_trunc('month', time), 'YYYY-MM') as month,
 
-	'支出' || currency || (sum(amount) filter (where account[1] = '支出'))::numeric(20,2)::text as expenses,
-	(
-		select string_agg(
-			currency || amount::numeric(20,2)::text || ' ' || account,
-			E'\n'
-			order by amount desc
-		) from (
-			select account[2] as account, currency, sum(amount) as amount
-			from unnest(
-				array_agg(id) filter (where account[1] = '支出')
-			) as id
-			join entries e2 using (id)
-			group by account[2], currency
-		) t0
-	) as expenses_detail,
+	COALESCE(
+		'支出' || currency || (sum(amount) filter (where account[1] = '支出'))::numeric(20,2)::text 
+		|| E'：\n'
+		|| (
+			select string_agg(
+				currency || amount::numeric(20,2)::text || ' ' || account,
+				E'\n'
+				order by amount desc
+			) from (
+				select account[2] as account, currency, sum(amount) as amount
+				from unnest(
+					array_agg(id) filter (where account[1] = '支出')
+				) as id
+				join entries e2 using (id)
+				group by account[2], currency
+			) t0
+		),
+		'-'
+	) || E'\n' as expenses,
 
-	'收入' || currency || (sum(amount) filter (where account[1] = '收入'))::numeric(20,2)::text as income,
-	(
-		select string_agg(
-			currency || amount::numeric(20, 2)::text || ' ' || account,
-			E'\n'
-			order by amount asc
-		) from (
-			select account[2] as account, currency, sum(amount) as amount
-			from unnest(
-				array_agg(id) filter (where account[1] = '收入')
-			) as id
-			join entries e2 using (id)
-			group by account[2], currency
-		) t0
-	) as income_detail,
+	COALESCE(
+		'收入' || currency || (sum(amount) filter (where account[1] = '收入'))::numeric(20,2)::text 
+		|| E'：\n'
+		|| (
+			select string_agg(
+				currency || amount::numeric(20, 2)::text || ' ' || account,
+				E'\n'
+				order by amount asc
+			) from (
+				select account[2] as account, currency, sum(amount) as amount
+				from unnest(
+					array_agg(id) filter (where account[1] = '收入')
+				) as id
+				join entries e2 using (id)
+				group by account[2], currency
+			) t0
+		),
+		'-'
+	) || E'\n' as income,
 
-	'净资产' || currency || (
-		-sum(amount) filter (where account[1] = '收入')
-		-
-		sum(amount) filter (where account[1] = '支出')
-	)::numeric(20,2)::text
+	COALESCE(
+		'净资产' || currency || (
+			-sum(amount) filter (where account[1] = '收入')
+			-
+			sum(amount) filter (where account[1] = '支出')
+		)::numeric(20,2)::text,
+		'-'
+	) || E'\n' as net_income,
+
+	COALESCE(
+		E'资产：\n' || (
+			select string_agg(
+				currency 
+				|| amount::numeric(20, 2)::text || ' ' || account
+				|| E'\n'
+				|| '= 增' || pos_amount::numeric(20, 2)::text
+				|| ' 减' || neg_amount::numeric(20, 2)::text,
+				E'\n'
+				order by amount desc
+			) from (
+				select account[2] as account, currency, sum(amount) as amount,
+				COALESCE(sum(amount) filter (where amount >= 0), 0) as pos_amount,
+				COALESCE(-sum(amount) filter (where amount < 0), 0) as neg_amount
+				from unnest(
+					array_agg(id) filter (where account[1] = '资产')
+				) as id
+				join entries e2 using (id)
+				group by account[2], currency
+			) t0
+		),
+		'-'
+	) || E'\n' as equity,
+
+	COALESCE(
+		E'负债：\n' || (
+			select string_agg(
+				currency 
+				|| amount::numeric(20, 2)::text || ' ' || account
+				|| E'\n'
+				|| '= 还' || pos_amount::numeric(20, 2)::text
+				|| ' 借' || neg_amount::numeric(20, 2)::text,
+				E'\n'
+				order by amount asc
+			) from (
+				select account[2] as account, currency, sum(amount) as amount,
+				COALESCE(sum(amount) filter (where amount >= 0), 0) as pos_amount,
+				COALESCE(-sum(amount) filter (where amount < 0), 0) as neg_amount
+				from unnest(
+					array_agg(id) filter (where account[1] = '负债')
+				) as id
+				join entries e2 using (id)
+				group by account[2], currency
+			) t0
+		),
+		'-'
+	) || E'\n' as liability
 
 	from
 	entries
