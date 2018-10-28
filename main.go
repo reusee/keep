@@ -421,6 +421,16 @@ func main() {
 	}
 	calculateProportion(rootAccount)
 
+	type sortWeightKey struct {
+		Level int
+		Name  string
+	}
+	sortWeight := map[sortWeightKey]int{
+		{1, "保险"}: 1,
+		{1, "负债"}: 2,
+		{1, "资产"}: 3,
+	}
+
 	// print accounts
 	var printAccount func(account *Account, level int, nameLen int, noSkipZeroAmount bool)
 	printAccount = func(account *Account, level int, nameLen int, noSkipZeroAmount bool) {
@@ -536,6 +546,11 @@ func main() {
 		sort.SliceStable(subNames, func(i, j int) bool {
 			a := account.Subs[subNames[i]]
 			b := account.Subs[subNames[j]]
+			weightA, ok1 := sortWeight[sortWeightKey{level + 1, a.Name}]
+			weightB, ok2 := sortWeight[sortWeightKey{level + 1, b.Name}]
+			if ok1 || ok2 {
+				return weightA < weightB
+			}
 			if allIsMonths {
 				// 月份排序
 				return subNames[i] < subNames[j]
