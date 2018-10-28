@@ -422,8 +422,11 @@ func main() {
 	calculateProportion(rootAccount)
 
 	// print accounts
-	var printAccount func(account *Account, level int, nameLen int)
-	printAccount = func(account *Account, level int, nameLen int) {
+	var printAccount func(account *Account, level int, nameLen int, noSkipZeroAmount bool)
+	printAccount = func(account *Account, level int, nameLen int, noSkipZeroAmount bool) {
+		if account.Parent == rootAccount && account.Name == "保险" {
+			noSkipZeroAmount = true
+		}
 		allZero := true
 		for _, balance := range account.Balances {
 			if balance.Cmp(zeroRat) != 0 {
@@ -431,7 +434,7 @@ func main() {
 				break
 			}
 		}
-		if allZero && account != rootAccount {
+		if allZero && account != rootAccount && !noSkipZeroAmount {
 			return
 		}
 		pt(
@@ -579,7 +582,7 @@ func main() {
 				skip = true
 				continue
 			}
-			printAccount(subAccount, level+1, subNameLen)
+			printAccount(subAccount, level+1, subNameLen, noSkipZeroAmount)
 		}
 		if skip {
 			pt(
@@ -588,7 +591,7 @@ func main() {
 			)
 		}
 	}
-	printAccount(rootAccount, 0, 0)
+	printAccount(rootAccount, 0, 0, false)
 
 	formatted := <-formatDone
 	if formatted {
