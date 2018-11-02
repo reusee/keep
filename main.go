@@ -477,7 +477,11 @@ func main() {
 				pt("%s", nShare.FloatString(1))
 			} else {
 				if !noAmount {
-					pt("%s", balance.FloatString(2))
+					if name == "/" {
+						pt("%s", balance.FloatString(0))
+					} else {
+						pt("%s", balance.FloatString(2))
+					}
 				}
 				pt("%s", proportion)
 			}
@@ -597,7 +601,12 @@ func main() {
 				skip = true
 				continue
 			}
-			printAccount(subAccount, level+1, subNameLen, noSkipZeroAmount)
+			printAccount(subAccount, level+1, subNameLen, func() bool {
+				if len(subAccount.Subs) == 0 {
+					return false
+				}
+				return noSkipZeroAmount
+			}())
 		}
 		if skip {
 			pt(
