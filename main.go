@@ -426,15 +426,20 @@ func main() {
 		Name  string
 	}
 	sortWeight := map[sortWeightKey]int{
-		{1, "保险"}: 1,
-		{1, "负债"}: 2,
-		{1, "资产"}: 3,
+		{1, "保险"}:  1,
+		{1, "消耗品"}: 2,
+		{1, "负债"}:  3,
+		{1, "资产"}:  4,
+	}
+	noSkipZeroAmountAccounts := map[string]bool{
+		"保险":  true,
+		"消耗品": true,
 	}
 
 	// print accounts
 	var printAccount func(account *Account, level int, nameLen int, noSkipZeroAmount bool)
 	printAccount = func(account *Account, level int, nameLen int, noSkipZeroAmount bool) {
-		if account.Parent == rootAccount && account.Name == "保险" {
+		if account.Parent == rootAccount && noSkipZeroAmountAccounts[account.Name] {
 			noSkipZeroAmount = true
 		}
 		allZero := true
