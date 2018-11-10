@@ -56,7 +56,7 @@ func sqlInterface(
 			id bigserial primary key,
 			transaction bigint,
 			transaction_description text,
-			time timestamp with time zone,
+			date timestamp with time zone,
 			account text[],
 			currency text,
 			amount numeric,
@@ -77,7 +77,7 @@ func sqlInterface(
 				INSERT INTO entries
 				(
 					transaction, transaction_description,
-					time, account, currency, amount, description
+					date, account, currency, amount, description
 				)
 				VALUES (
 					$1, $2,
@@ -133,8 +133,8 @@ var views = []string{
 	// props
 	`
 	create view props as 
-	select distinct on (time, transaction)
-	time, transaction_description
+	select distinct on (date, transaction)
+	date, transaction_description
 	from entries
 	where account[1] = '支出'
 	and account[2] in (
@@ -147,7 +147,23 @@ var views = []string{
 		'药物',
 		'性用品'
 	)
-	order by time desc, transaction
+	order by date desc, transaction
+	`,
+
+	// consumables
+	`
+	create view consumables as 
+	select distinct on (date, transaction)
+	date, transaction_description
+	from entries
+	where account[1] = '支出'
+	and account[2] in (
+		'饮食',
+		'消耗品',
+		'药物',
+		'保健品'
+	)
+	order by date desc, transaction
 	`,
 
 	// monthly
@@ -155,7 +171,7 @@ var views = []string{
 	create view monthly as 
 	select 
 
-	to_char(date_trunc('month', time), 'YYYY-MM') as month,
+	to_char(date_trunc('month', date), 'YYYY-MM') as month,
 
 	COALESCE(
 		'支出' || currency || (sum(amount) filter (where account[1] = '支出'))::numeric(20,2)::text 
@@ -257,7 +273,7 @@ var views = []string{
 	from
 	entries
 
-	group by date_trunc('month', time), currency
+	group by date_trunc('month', date), currency
 	order by month desc, currency asc
 	`,
 
@@ -267,16 +283,16 @@ var views = []string{
 	select 
 	currency, sum(amount), account[2], 
 	jsonb_pretty(jsonb_agg(
-			to_char(time, 'YYYY-MM-DD') 
+			to_char(date, 'YYYY-MM-DD') 
 			|| ' ' 
 			|| currency 
 			|| amount::numeric(10,2)
 			|| ' ' 
 			|| transaction_description 
-			order by amount desc, time desc
+			order by amount desc, date desc
 	)) 
 	from entries
-	where extract(year from time) = extract(year from now())
+	where extract(year from date) = extract(year from now())
 	and account[1] = '支出' 
 	group by account[2],currency 
 	order by sum desc
