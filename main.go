@@ -560,6 +560,17 @@ func main() {
 			if ok1 || ok2 {
 				return weightA < weightB
 			}
+			// '/' 为单位的
+			if len(account.Balances) == 1 && func() bool {
+				for currency := range account.Balances {
+					if currency == "/" {
+						return true
+					}
+				}
+				return false
+			}() {
+				return a.Name < b.Name
+			}
 			if allIsMonths {
 				// 月份排序
 				return subNames[i] < subNames[j]
