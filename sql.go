@@ -167,11 +167,42 @@ var views = []string{
 	`,
 
 	// monthly
-	`
-	create view monthly as 
-	select 
+	"create view monthly as" + intervalStat("date_trunc('month', date)"),
 
-	to_char(date_trunc('month', date), 'YYYY-MM') as month,
+	// yearly
+	"create view yearly as" + intervalStat("date_trunc('year', date)"),
+
+	// seasonally
+	"create view seasonally as" + intervalStat("date_trunc('year', date) + interval '3 month' * (extract(month from date)::int / 3)"),
+
+	// this year expenses
+	`
+	create view this_year_expenses as
+	select 
+	currency, sum(amount), account[2], 
+	jsonb_pretty(jsonb_agg(
+			to_char(date, 'YYYY-MM-DD') 
+			|| ' ' 
+			|| currency 
+			|| amount::numeric(10,2)
+			|| ' ' 
+			|| transaction_description 
+			order by amount desc, date desc
+	)) 
+	from entries
+	where extract(year from date) = extract(year from now())
+	and account[1] = '支出' 
+	group by account[2],currency 
+	order by sum desc
+	`,
+
+	//
+}
+
+func intervalStat(groupBy string) string {
+	return `
+	select 
+	to_char(` + groupBy + `, 'YYYY-MM') as span,
 
 	COALESCE(
 		'支出' || currency || (sum(amount) filter (where account[1] = '支出'))::numeric(20,2)::text 
@@ -273,30 +304,7 @@ var views = []string{
 	from
 	entries
 
-	group by date_trunc('month', date), currency
-	order by month desc, currency asc
-	`,
-
-	// this year expenses
+	group by ` + groupBy + `, currency
+	order by span desc, currency asc
 	`
-	create view this_year_expenses as
-	select 
-	currency, sum(amount), account[2], 
-	jsonb_pretty(jsonb_agg(
-			to_char(date, 'YYYY-MM-DD') 
-			|| ' ' 
-			|| currency 
-			|| amount::numeric(10,2)
-			|| ' ' 
-			|| transaction_description 
-			order by amount desc, date desc
-	)) 
-	from entries
-	where extract(year from date) = extract(year from now())
-	and account[1] = '支出' 
-	group by account[2],currency 
-	order by sum desc
-	`,
-
-	//
 }
