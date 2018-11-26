@@ -66,24 +66,25 @@ func sqlInterface(
 	); err != nil {
 		fail("%v", err)
 	}
+
 	for _, view := range views {
 		if _, err := tx.Exec(view); err != nil {
 			fail("%v", err)
 		}
 	}
+
+	stmt, err := tx.Prepare(pq.CopyIn("entries",
+		"transaction", "transaction_description",
+		"date", "account",
+		"currency", "amount",
+		"description",
+	))
+	if err != nil {
+		panic(err)
+	}
 	for tid, transaction := range transactions {
 		for _, entry := range transaction.Entries {
-			if _, err := tx.Exec(`
-				INSERT INTO entries
-				(
-					transaction, transaction_description,
-					date, account, currency, amount, description
-				)
-				VALUES (
-					$1, $2,
-					$3, $4, $5, $6::numeric, $7
-				)
-				`,
+			if _, err := stmt.Exec(
 				tid,
 				transaction.Description,
 				entry.Time,
@@ -103,9 +104,15 @@ func sqlInterface(
 				entry.Amount.FloatString(3),
 				entry.Description,
 			); err != nil {
-				fail("%v", err)
+				panic(err)
 			}
 		}
+	}
+	if _, err := stmt.Exec(); err != nil {
+		panic(err)
+	}
+	if err := stmt.Close(); err != nil {
+		panic(err)
 	}
 	if err := tx.Commit(); err != nil {
 		fail("%v", err)
