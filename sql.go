@@ -166,14 +166,20 @@ var views = []string{
 	order by date desc, transaction
 	`,
 
-	// monthly
-	"create view monthly as" + intervalStat("date_trunc('month', date)"),
-
 	// yearly
 	"create view yearly as" + intervalStat("date_trunc('year', date)"),
 
 	// seasonally
 	"create view seasonally as" + intervalStat("date_trunc('year', date) + interval '3 month' * (extract(month from date)::int / 3)"),
+
+	// monthly
+	"create view monthly as" + intervalStat("date_trunc('month', date)"),
+
+	// weekly
+	"create view weekly as" + intervalStat("date_trunc('week', date)"),
+
+	// daily
+	"create view daily as" + intervalStat("date_trunc('day', date)"),
 
 	// this year expenses
 	`
@@ -202,7 +208,7 @@ var views = []string{
 func intervalStat(groupBy string) string {
 	return `
 	select 
-	to_char(` + groupBy + `, 'YYYY-MM') as span,
+	to_char(` + groupBy + `, 'YYYY-MM-DD') as span,
 
 	COALESCE(
 		'支出' || currency || (sum(amount) filter (where account[1] = '支出'))::numeric(20,2)::text 
