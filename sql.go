@@ -209,6 +209,85 @@ var views = []string{
 	order by sum desc
 	`,
 
+	// balance sheet
+	`
+	create view balance_sheet as
+	select
+
+	'资产：'
+	|| (
+		select string_agg(currency || amount, ' ') from (
+			select sum(amount) as amount, currency
+			from entries
+			where account[1] = '资产'
+			group by currency
+		) t0
+		where amount <> 0
+	)::text
+	|| E'\n'
+
+	|| '负债：'
+	|| (
+		select string_agg(currency || amount, ' ') from (
+			select sum(amount) as amount, currency
+			from entries
+			where account[1] = '负债'
+			group by currency
+		) t0
+		where amount <> 0
+	)::text
+	|| E'\n'
+
+	|| '净资产：'
+	|| (
+		select string_agg(currency || amount, ' ') from (
+			select sum(amount) + (
+				select sum(amount) 
+				from entries e
+				where account[1] = '负债'
+				and currency = entries.currency
+			) as amount, currency
+			from entries
+			where account[1] = '资产'
+			group by currency
+		) t0
+		where amount <> 0
+	)::text
+	|| E'\n'
+
+	|| '一年内负债：'
+	|| (
+		select string_agg(currency || amount, ' ') from (
+			select sum(amount) as amount, currency
+			from entries
+			where account[1] = '负债'
+			and date < now() + interval '1 year'
+			group by currency
+		) t0
+		where amount <> 0
+	)::text
+	|| E'\n'
+
+	|| '一年内净资产：'
+	|| (
+		select string_agg(currency || amount, ' ') from (
+			select sum(amount) + (
+				select sum(amount) 
+				from entries e
+				where account[1] = '负债'
+				and currency = entries.currency
+				and date < now() + interval '1 year'
+			) as amount, currency
+			from entries
+			where account[1] = '资产'
+			group by currency
+		) t0
+		where amount <> 0
+	)::text
+	|| E'\n'
+
+	`,
+
 	//
 }
 
