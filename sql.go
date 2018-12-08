@@ -21,9 +21,8 @@ func sqlInterface(
 ) {
 
 	dbDir := filepath.Join(os.TempDir(), fmt.Sprintf("keep-%d", rand.Int63()))
-	if out, err := exec.Command("initdb", "-D", dbDir).CombinedOutput(); err != nil {
-		fail("%v: %s", err, out)
-	}
+	out, err := exec.Command("initdb", "-D", dbDir).CombinedOutput()
+	ce(we(err, "%s", out))
 	pt("db dir: %s\n", dbDir)
 	defer exec.Command("rm", "-rf", dbDir).Run()
 
@@ -31,27 +30,22 @@ func sqlInterface(
 	conf := `
 		port = ` + fmt.Sprintf("%d", port) + `
 	`
-	if err := ioutil.WriteFile(filepath.Join(dbDir, "postgresql.conf"), []byte(conf), 0644); err != nil {
-		fail("%v", err)
-	}
+	err = ioutil.WriteFile(filepath.Join(dbDir, "postgresql.conf"), []byte(conf), 0644)
+	ce(err)
 	c := exec.Command("postgres", "-D", dbDir)
 	c.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
-	if err := c.Start(); err != nil {
-		fail("%v", err)
-	}
+	ce(c.Start())
 	defer syscall.Kill(-c.Process.Pid, syscall.SIGKILL)
 	time.Sleep(time.Second)
 	pt("db started\n")
 
 	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://localhost:%d/postgres?sslmode=disable", port))
-	if err != nil {
-		fail("%v", err)
-	}
+	ce(err)
 	defer db.Close()
 	tx := db.MustBegin()
-	if _, err := tx.Exec(`
+	_, err = tx.Exec(`
 		CREATE TABLE entries (
 			id bigserial primary key,
 			transaction bigint,
@@ -63,14 +57,12 @@ func sqlInterface(
 			description text
 		)
 		`,
-	); err != nil {
-		fail("%v", err)
-	}
+	)
+	ce(err)
 
 	for _, view := range views {
-		if _, err := tx.Exec(view); err != nil {
-			fail("%v", err)
-		}
+		_, err := tx.Exec(view)
+		ce(err)
 	}
 
 	stmt, err := tx.Prepare(pq.CopyIn("entries",
@@ -114,9 +106,7 @@ func sqlInterface(
 	if err := stmt.Close(); err != nil {
 		panic(err)
 	}
-	if err := tx.Commit(); err != nil {
-		fail("%v", err)
-	}
+	ce(tx.Commit())
 	pt("data loaded\n")
 
 	sigs := make(chan os.Signal)
@@ -131,9 +121,7 @@ func sqlInterface(
 	psql.Stdout = os.Stdout
 	psql.Stdin = os.Stdin
 	psql.Stderr = os.Stderr
-	if err := psql.Run(); err != nil {
-		fail("%v", err)
-	}
+	ce(psql.Run())
 }
 
 var views = []string{

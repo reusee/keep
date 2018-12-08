@@ -88,7 +88,7 @@ func main() {
 		str = strings.Replace(str, "/", "-", -1)
 		str = strings.Replace(str, ".", "-", -1)
 		t, err := time.Parse("2006-01-02", str)
-		ce(err, "bad date: %s", str)
+		ce(we(err, "bad date: %s", str))
 		return t
 	}
 	if fromStr != "" {
@@ -116,7 +116,7 @@ func main() {
 	// read ledger file
 	ledgerPath := args[0]
 	contentBytes, err := ioutil.ReadFile(ledgerPath)
-	ce(err, "read ledger")
+	ce(we(err, "read ledger"))
 	content := string(contentBytes)
 	content = strings.Replace(content, "\r\n", "\n", -1)
 	content = strings.Replace(content, "\r", "\n", -1)
@@ -204,12 +204,8 @@ func main() {
 		}
 		formatted := false
 		if !bytes.Equal(contentBytes, out.Bytes()) {
-			if err := ioutil.WriteFile(ledgerPath+".tmp", out.Bytes(), 0644); err != nil {
-				panic(err)
-			}
-			if err := os.Rename(ledgerPath+".tmp", ledgerPath); err != nil {
-				panic(err)
-			}
+			ce(ioutil.WriteFile(ledgerPath+".tmp", out.Bytes(), 0644))
+			ce(os.Rename(ledgerPath+".tmp", ledgerPath))
 			formatted = true
 		}
 		formatDone <- formatted
@@ -651,7 +647,9 @@ func parseAmount(str string) (*big.Rat, error) {
 	return value, nil
 }
 
-func evalExpr(expr ast.Expr) (*big.Rat, error) {
+func evalExpr(expr ast.Expr) (result *big.Rat, err error) {
+	defer he(&err)
+
 	switch expr := expr.(type) {
 
 	case *ast.BasicLit:
@@ -666,21 +664,15 @@ func evalExpr(expr ast.Expr) (*big.Rat, error) {
 		switch expr.Op {
 		case token.SUB:
 			v, err := evalExpr(expr.X)
-			if err != nil {
-				return nil, err
-			}
+			ce(err)
 			return v.Neg(v), nil
 		}
 
 	case *ast.BinaryExpr:
 		x, err := evalExpr(expr.X)
-		if err != nil {
-			return nil, err
-		}
+		ce(err)
 		y, err := evalExpr(expr.Y)
-		if err != nil {
-			return nil, err
-		}
+		ce(err)
 		switch expr.Op {
 		case token.MUL:
 			return x.Mul(x, y), nil

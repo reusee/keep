@@ -6,14 +6,17 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/reusee/e"
 )
 
 var (
-	pt      = fmt.Printf
-	zeroRat = big.NewRat(0, 1)
+	pt             = fmt.Printf
+	zeroRat        = big.NewRat(0, 1)
+	me, we, ce, he = e.New(e.WithPackage("keep"))
 )
 
-func fail(format string, args ...interface{}) {
+func _fail(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, args...)
 	pcs := make([]uintptr, 64)
 	n := runtime.Callers(2, pcs)
