@@ -12,5 +12,9 @@ github.com/reusee/e v0.0.0-20181207022942-754033a39b47 h1:cHDMsqLBD3EAVDxAWB0xNM
 github.com/reusee/e v0.0.0-20181207022942-754033a39b47/go.mod h1:y4g9bV4mzAjO+siuCEsHW57LkmevaUb/OeV9NGDTsKA=
 github.com/reusee/e v0.0.0-20181208134649-096c0d8b5a90 h1:3Cld4+VfCe/ab+SLB1GRMxvK1CJnhhjXNLEJqMkqVOM=
 github.com/reusee/e v0.0.0-20181208134649-096c0d8b5a90/go.mod h1:y4g9bV4mzAjO+siuCEsHW57LkmevaUb/OeV9NGDTsKA=
+github.com/reusee/e v0.0.0-20181208145306-c98f4e4b7c68 h1:Jo7I+M5S5aLsUdn8K0V0PEZG32N1ti8o+E+CF/vazrQ=
+github.com/reusee/e v0.0.0-20181208145306-c98f4e4b7c68/go.mod h1:92G0bRVo8qR3XwETzcBRtZUJTM+AT9KurbQd10DxTM8=
+golang.org/x/exp/errors v0.0.0-20181206211736-68cc7b1f272e h1:CeH8uuzRAvM0GCmkSIsIqzD9xqnC6HPOjU4AeTvqqJg=
+golang.org/x/exp/errors v0.0.0-20181206211736-68cc7b1f272e/go.mod h1:YgqsNsAu4fTvlab/7uiYK9LJrCIzKg/NiZUIH1/ayqo=
 golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=

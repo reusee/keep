@@ -5,6 +5,6 @@ require (
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.0.0
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
-	github.com/reusee/e v0.0.0-20181208134649-096c0d8b5a90
+	github.com/reusee/e v0.0.0-20181208145306-c98f4e4b7c68
 	golang.org/x/text v0.3.0
 )
