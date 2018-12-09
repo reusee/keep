@@ -129,7 +129,9 @@ var views = []string{
 	`
 	create view props as 
 	select distinct on (date, transaction)
-	date, transaction_description
+	date
+	,transaction_description as desc
+	,account[2] as kind
 	from entries
 	where account[1] = '支出'
 	and account[2] in (
