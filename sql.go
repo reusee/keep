@@ -204,8 +204,7 @@ var views = []string{
 	create view balance_sheet as
 	select
 
-	'资产：'
-	|| (
+	(
 		select string_agg(currency || amount, ' ') from (
 			select sum(amount) as amount, currency
 			from entries
@@ -214,10 +213,23 @@ var views = []string{
 		) t0
 		where amount <> 0
 	)::text
-	|| E'\n'
-
-	|| '负债：'
+	|| E'\n-----\n'
 	|| (
+		select string_agg(
+			kind || ' ' || currency || amount, E'\n'
+			order by amount desc
+		) 
+		from (
+			select sum(amount) as amount, currency, account[2] as kind
+			from entries
+			where account[1] = '资产'
+			group by currency, account[2]
+		) t0
+		where amount <> 0
+	)
+	AS 资产
+
+	,(
 		select string_agg(currency || amount, ' ') from (
 			select sum(amount) as amount, currency
 			from entries
@@ -226,10 +238,23 @@ var views = []string{
 		) t0
 		where amount <> 0
 	)::text
-	|| E'\n'
-
-	|| '净资产：'
+	|| E'\n-----\n'
 	|| (
+		select string_agg(
+			kind || ' ' || currency || amount, E'\n'
+			order by amount asc
+		) 
+		from (
+			select sum(amount) as amount, currency, account[2] as kind
+			from entries
+			where account[1] = '负债'
+			group by currency, account[2]
+		) t0
+		where amount <> 0
+	)
+	AS 负债
+
+	,(
 		select string_agg(currency || amount, ' ') from (
 			select sum(amount) + (
 				select sum(amount) 
@@ -243,10 +268,9 @@ var views = []string{
 		) t0
 		where amount <> 0
 	)::text
-	|| E'\n'
+	AS 净资产
 
-	|| '一年内负债：'
-	|| (
+	,(
 		select string_agg(currency || amount, ' ') from (
 			select sum(amount) as amount, currency
 			from entries
@@ -256,10 +280,24 @@ var views = []string{
 		) t0
 		where amount <> 0
 	)::text
-	|| E'\n'
-
-	|| '一年内净资产：'
+	|| E'\n-----\n'
 	|| (
+		select string_agg(
+			kind || ' ' || currency || amount, E'\n'
+			order by amount asc
+		) 
+		from (
+			select sum(amount) as amount, currency, account[2] as kind
+			from entries
+			where account[1] = '负债'
+			and date < now() + interval '1 year'
+			group by currency, account[2]
+		) t0
+		where amount <> 0
+	)
+	AS 一年负债
+
+	,(
 		select string_agg(currency || amount, ' ') from (
 			select sum(amount) + (
 				select sum(amount) 
@@ -274,7 +312,7 @@ var views = []string{
 		) t0
 		where amount <> 0
 	)::text
-	|| E'\n'
+	AS 一年净资产
 
 	`,
 
