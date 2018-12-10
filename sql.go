@@ -316,6 +316,41 @@ var views = []string{
 
 	`,
 
+	// net_asset_changes
+	`
+	create view net_asset_changes as
+	select 
+	to_char(d, 'YYYY-MM') AS 月份,
+	c || net AS 净资产,
+	d - lag(d, 1) over (partition by c order by d asc) as 日数,
+	c || (net - lag(net, 1) over (partition by c order by d asc))::text as 变动
+	from (
+		select 
+		c,
+		d,
+		COALESCE((
+			select sum(amount)
+			from entries
+			where account[1] = '资产'
+			and currency = c
+			and date < d
+		), 0) 
+		+ COALESCE((
+			select sum(amount)
+			from entries
+			where account[1] = '负债'
+			and currency = c
+			and date < d
+		), 0) net
+		from (
+			select distinct date_trunc('month', date) as d , currency as c from entries
+			where currency in ('￥', '$')
+		) t0
+		where d < now()
+	) t1
+	order by d desc
+	`,
+
 	//
 }
 
