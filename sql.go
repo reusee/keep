@@ -321,9 +321,10 @@ var views = []string{
 	create view net_asset_changes as
 	select 
 	to_char(d, 'YYYY-MM') AS 月份,
-	c || net AS 净资产,
 	d - lag(d, 1) over (partition by c order by d asc) as 日数,
-	c || (net - lag(net, 1) over (partition by c order by d asc))::text as 变动
+	net AS 净资产,
+	c,
+	net - lag(net, 1) over (partition by c order by d asc) as 变动
 	from (
 		select 
 		c,
