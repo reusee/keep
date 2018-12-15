@@ -314,6 +314,48 @@ var views = []string{
 	)::text
 	AS 一年净资产
 
+	` + func() string {
+		cond := `
+		and account[1] = '资产'
+		and true != ALL(array[
+			account[2] = '基金'
+			,account[2] = '股票'
+			,account[2] = '公积金'
+			,account[2] = '理财' and account[3] <> '活期'
+			,account[2] = '债权'
+			,account[2] = '押金'
+		])
+		`
+		return `
+		,(
+			select string_agg(currency || amount, ' ') from (
+				select sum(amount) as amount, currency
+				from entries
+				where true
+				` + cond + `
+				group by currency
+			) t0
+			where amount <> 0
+		)::text
+		|| E'\n-----\n'
+		|| (
+			select string_agg(
+				kind || ' ' || currency || amount, E'\n'
+				order by amount desc
+			) 
+			from (
+				select sum(amount) as amount, currency, account[2] as kind
+				from entries
+				where true
+				` + cond + `
+				group by currency, account[2]
+			) t0
+			where amount <> 0
+		)
+		AS 流动资产
+		`
+	}() + `
+
 	`,
 
 	// net_asset_changes
