@@ -394,6 +394,27 @@ var views = []string{
 	order by d desc
 	`,
 
+	// assurance
+	`
+	create view assurance as
+	select 
+	year, d,  sum(amount)
+	from (
+		select
+		*,
+		extract(year from date) as year,
+		(
+			select account[3] || '：' || account[4] from entries b
+			where transaction = entries.transaction
+			and account[1] = '保险' and account[2] = '生效'
+		) as d
+		from entries
+		where account[1] = '支出' and account[2] = '保险'
+	) t0
+	group by d, year
+	order by year asc, sum(amount) desc
+	`,
+
 	//
 }
 
