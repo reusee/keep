@@ -20,28 +20,42 @@ func sqlInterface(
 	transactions []*Transaction,
 ) {
 
+	execCommand := func(name string, args ...string) *exec.Cmd {
+		if isRoot {
+			as := []string{
+				"-u",
+				"postgres",
+			}
+			as = append(as, name)
+			as = append(as, args...)
+			return exec.Command("sudo", as...)
+		}
+		return exec.Command(name, args...)
+	}
+
 	dbDir := filepath.Join(os.TempDir(), fmt.Sprintf("keep-%d", rand.Int63()))
-	out, err := exec.Command("initdb", "-D", dbDir).CombinedOutput()
+	out, err := execCommand("initdb", "-D", dbDir).CombinedOutput()
 	ce(we(err, "%s", out))
 	pt("db dir: %s\n", dbDir)
-	defer exec.Command("rm", "-rf", dbDir).Run()
+	defer execCommand("rm", "-rf", dbDir).Run()
 
 	port := 10000 + rand.Intn(50000)
 	conf := `
 		port = ` + fmt.Sprintf("%d", port) + `
+		unix_socket_directories = '/tmp'
 	`
 	err = ioutil.WriteFile(filepath.Join(dbDir, "postgresql.conf"), []byte(conf), 0644)
 	ce(err)
-	c := exec.Command("postgres", "-D", dbDir)
+	c := execCommand("postgres", "-D", dbDir)
 	c.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
 	ce(c.Start())
 	defer syscall.Kill(-c.Process.Pid, syscall.SIGKILL)
 	time.Sleep(time.Second)
-	pt("db started\n")
+	pt("db started at port %d\n", port)
 
-	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://localhost:%d/postgres?sslmode=disable", port))
+	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://postgres@localhost:%d/postgres?sslmode=disable", port))
 	ce(err)
 	defer db.Close()
 	tx := db.MustBegin()
@@ -117,7 +131,7 @@ func sqlInterface(
 	}()
 	signal.Notify(sigs, os.Interrupt)
 
-	psql := exec.Command("psql", fmt.Sprintf("postgres://localhost:%d/postgres", port))
+	psql := exec.Command("psql", fmt.Sprintf("postgres://postgres@localhost:%d/postgres", port))
 	psql.Stdout = os.Stdout
 	psql.Stdin = os.Stdin
 	psql.Stderr = os.Stderr
