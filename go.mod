@@ -10,5 +10,5 @@ require (
 	github.com/zmb3/gogetdoc v0.0.0-20181208215853-c5ca8f4d4936 // indirect
 	golang.org/x/lint v0.0.0-20181217174547-8f45f776aaf1 // indirect
 	golang.org/x/text v0.3.0
-	golang.org/x/tools v0.0.0-20181221235234-d00ac6d27372 // indirect
+	golang.org/x/tools v0.0.0-20190103205943-8a6051197512 // indirect
 )
