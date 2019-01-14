@@ -22,10 +22,13 @@ github.com/reusee/e v0.0.0-20181225060416-5ef18cf50237 h1:HuTuD8VW72m9Cnw+RVXgyW
 github.com/reusee/e v0.0.0-20181225060416-5ef18cf50237/go.mod h1:ze/S8dF4V56yQsGpPo3S+6vFISMnLFqtVv0Mp3iDSDc=
 github.com/zmb3/gogetdoc v0.0.0-20181208215853-c5ca8f4d4936 h1:+We2eeE8UuACEPcT7Ez1/yK0MN6SAqzy6S2JPxJTycQ=
 github.com/zmb3/gogetdoc v0.0.0-20181208215853-c5ca8f4d4936/go.mod h1:ofmGw6LrMypycsiWcyug6516EXpIxSbZ+uI9ppGypfY=
+github.com/zmb3/gogetdoc v0.0.0-20190107174152-de0ca1d07687/go.mod h1:ofmGw6LrMypycsiWcyug6516EXpIxSbZ+uI9ppGypfY=
 golang.org/x/exp/errors v0.0.0-20181206211736-68cc7b1f272e h1:CeH8uuzRAvM0GCmkSIsIqzD9xqnC6HPOjU4AeTvqqJg=
 golang.org/x/exp/errors v0.0.0-20181206211736-68cc7b1f272e/go.mod h1:YgqsNsAu4fTvlab/7uiYK9LJrCIzKg/NiZUIH1/ayqo=
 golang.org/x/exp/errors v0.0.0-20181221233300-b68661188fbf h1:4SQtY0VxhI0RZe/PFmCCfHyaPVuC5DgyXEqehsAWjwc=
 golang.org/x/exp/errors v0.0.0-20181221233300-b68661188fbf/go.mod h1:YgqsNsAu4fTvlab/7uiYK9LJrCIzKg/NiZUIH1/ayqo=
+golang.org/x/exp/errors v0.0.0-20190104205336-ae74f88a12a8 h1:EMo2A4LfOZAih/NSdMcdo9aJPWWbDsP31n56JAe/y4A=
+golang.org/x/exp/errors v0.0.0-20190104205336-ae74f88a12a8/go.mod h1:YgqsNsAu4fTvlab/7uiYK9LJrCIzKg/NiZUIH1/ayqo=
 golang.org/x/lint v0.0.0-20181217174547-8f45f776aaf1 h1:rJm0LuqUjoDhSk2zO9ISMSToQxGz7Os2jRiOL8AWu4c=
 golang.org/x/lint v0.0.0-20181217174547-8f45f776aaf1/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
 golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
@@ -34,3 +37,4 @@ golang.org/x/tools v0.0.0-20181207195948-8634b1ecd393/go.mod h1:n7NCudcB/nEzxVGm
 golang.org/x/tools v0.0.0-20181221235234-d00ac6d27372 h1:zWPUEY/PjVHT+zO3L8OfkjrtIjf55joTxn/RQP/AjOI=
 golang.org/x/tools v0.0.0-20181221235234-d00ac6d27372/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20190103205943-8a6051197512/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+golang.org/x/tools v0.0.0-20190111214448-fc1d57b08d7b/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
