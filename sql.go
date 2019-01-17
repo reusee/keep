@@ -356,6 +356,33 @@ var views = []string{
 		`
 	}() + `
 
+	,(
+		select string_agg(currency || amount, ' ') from (
+			select sum(amount) as amount, currency
+			from entries
+			where account[1] = '负债'
+			and date < now() + interval '1 month'
+			group by currency
+		) t0
+		where amount <> 0
+	)::text
+	|| E'\n-----\n'
+	|| (
+		select string_agg(
+			kind || ' ' || currency || amount, E'\n'
+			order by amount asc
+		) 
+		from (
+			select sum(amount) as amount, currency, account[2] as kind
+			from entries
+			where account[1] = '负债'
+			and date < now() + interval '1 month'
+			group by currency, account[2]
+		) t0
+		where amount <> 0
+	)
+	AS 一月负债
+
 	`,
 
 	// net_asset_changes
