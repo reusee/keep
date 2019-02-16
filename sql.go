@@ -55,7 +55,7 @@ func sqlInterface(
 	time.Sleep(time.Second)
 	pt("db started at port %d\n", port)
 
-	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://postgres@localhost:%d/postgres?sslmode=disable", port))
+	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://localhost:%d/postgres?sslmode=disable", port))
 	ce(err)
 	defer db.Close()
 	tx := db.MustBegin()
@@ -131,7 +131,7 @@ func sqlInterface(
 	}()
 	signal.Notify(sigs, os.Interrupt)
 
-	psql := exec.Command("psql", fmt.Sprintf("postgres://postgres@localhost:%d/postgres", port))
+	psql := exec.Command("psql", fmt.Sprintf("postgres://localhost:%d/postgres", port))
 	psql.Stdout = os.Stdout
 	psql.Stdin = os.Stdin
 	psql.Stderr = os.Stderr
@@ -142,23 +142,31 @@ var views = []string{
 	// props
 	`
 	create view props as 
-	select distinct on (date, transaction)
-	date
-	,transaction_description as desc
-	,account[2] as kind
-	from entries
-	where account[1] = '支出'
-	and account[2] in (
-		'数码',
-		'物品',
-		'衣物服饰',
-		'消耗品',
-		'保健品',
-		'书籍',
-		'药物',
-		'性用品'
-	)
-	order by date desc, transaction
+	select max(date) as date, max(description) as description, max(kinds) as kinds
+	,jsonb_object_agg(currency, amount) as amount
+	from (
+		select 
+		max(date) as date
+		,transaction
+		,max(transaction_description) as description
+		,array_agg(account[2]) as kinds
+		,currency
+		,sum(amount) as amount
+		from entries
+		where account[1] = '支出'
+		and account[2] in (
+			'数码',
+			'物品',
+			'衣物服饰',
+			'消耗品',
+			'保健品',
+			'书籍',
+			'药物',
+			'性用品'
+		)
+		group by transaction, currency
+	) t0
+	group by transaction
 	`,
 
 	// consumables

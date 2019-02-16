@@ -26,6 +26,7 @@ var (
 	blanksPattern          = regexp.MustCompile(`\s+`)
 	inlineDatePattern      = regexp.MustCompile(`@[0-9]{4}[/.-][0-9]{2}[/.-][0-9]{2}`)
 	commentLinePattern     = regexp.MustCompile(`^\s*(#|//)`)
+	yearMonthPattern       = regexp.MustCompile(`[0-9]{4}`)
 )
 
 type Account struct {
@@ -329,6 +330,9 @@ func main() {
 				var entryTime time.Time
 				if inlineDate := inlineDatePattern.FindString(entry.Description); inlineDate != "" {
 					entryTime = parseDate(inlineDate[1:])
+				} else if yearMonthPattern.MatchString(account.Name) && account.Top().Name == "负债" {
+					entryTime, err = time.Parse("0601", account.Name)
+					ce(err)
 				} else {
 					entryTime = t
 				}
@@ -714,4 +718,12 @@ func padToLen(s string, l int) string {
 		b.WriteByte(' ')
 	}
 	return b.String()
+}
+
+func (a *Account) Top() *Account {
+	ret := a
+	for ret.Parent != nil && ret.Parent.Parent != nil {
+		ret = ret.Parent
+	}
+	return ret
 }
