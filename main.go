@@ -380,7 +380,7 @@ func main() {
 					transaction.Description,
 			})
 			e.Currency = "/"
-			e.Amount = big.NewRat(1, 1)
+			e.Amount = big.NewRat(int64(entry.Amount.Sign()), 1)
 			e.Time = entry.Time
 			e.Year = entry.Year
 			e.Month = entry.Month
@@ -391,7 +391,7 @@ func main() {
 				"物品", "购买", entry.Account.Name,
 			})
 			e.Currency = "/"
-			e.Amount = big.NewRat(-1, 1)
+			e.Amount = big.NewRat(int64(-entry.Amount.Sign()), 1)
 			e.Time = entry.Time
 			e.Year = entry.Year
 			e.Month = entry.Month
