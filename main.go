@@ -357,6 +357,38 @@ func main() {
 
 		}
 
+		// virtual entries
+		for _, entry := range transaction.Entries {
+			if !(itemKinds[entry.Account.Name] && entry.Account.Parent.Name == "支出") {
+				continue
+			}
+
+			e := new(Entry)
+			e.Account = getAccount(rootAccount, []string{
+				"物品", "可用", entry.Account.Name,
+				entry.Time.Format("2006-01-02 ") +
+					transaction.Description,
+			})
+			e.Currency = "/"
+			e.Amount = big.NewRat(1, 1)
+			e.Time = entry.Time
+			e.Year = entry.Year
+			e.Month = entry.Month
+			e.Day = entry.Day
+			transaction.Entries = append(transaction.Entries, e)
+			e = new(Entry)
+			e.Account = getAccount(rootAccount, []string{
+				"物品", "购买", entry.Account.Name,
+			})
+			e.Currency = "/"
+			e.Amount = big.NewRat(-1, 1)
+			e.Time = entry.Time
+			e.Year = entry.Year
+			e.Month = entry.Month
+			e.Day = entry.Day
+			transaction.Entries = append(transaction.Entries, e)
+		}
+
 		if t.IsZero() {
 			continue
 		}
@@ -420,21 +452,6 @@ func main() {
 		}
 	}
 	calculateProportion(rootAccount)
-
-	type sortWeightKey struct {
-		Level int
-		Name  string
-	}
-	sortWeight := map[sortWeightKey]int{
-		{1, "保险"}:  1,
-		{1, "消耗品"}: 2,
-		{1, "负债"}:  3,
-		{1, "资产"}:  4,
-	}
-	noSkipZeroAmountAccounts := map[string]bool{
-		"保险":  true,
-		"消耗品": true,
-	}
 
 	// print accounts
 	var printAccount func(account *Account, level int, nameLen int, noSkipZeroAmount bool)
@@ -726,4 +743,14 @@ func (a *Account) Top() *Account {
 		ret = ret.Parent
 	}
 	return ret
+}
+
+func (a *Account) MatchPath(path []string) bool {
+	c := a
+	for i := len(path) - 1; i >= 0; i-- {
+		if c.Name == path[i] {
+			c = c.Parent
+		}
+	}
+	return c.Parent == nil // is root
 }
