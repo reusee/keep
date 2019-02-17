@@ -27,6 +27,7 @@ var (
 	inlineDatePattern      = regexp.MustCompile(`@[0-9]{4}[/.-][0-9]{2}[/.-][0-9]{2}`)
 	commentLinePattern     = regexp.MustCompile(`^\s*(#|//)`)
 	yearMonthPattern       = regexp.MustCompile(`[0-9]{4}`)
+	entryTagPattern        = regexp.MustCompile(`<[^>]+>`)
 )
 
 type Account struct {
@@ -48,6 +49,7 @@ type Entry struct {
 	Currency    string
 	Amount      *big.Rat
 	Description string
+	Tags        map[string]bool
 }
 
 type Transaction struct {
@@ -327,6 +329,11 @@ func main() {
 					entry.Description = parts[2]
 				}
 
+				entry.Tags = make(map[string]bool)
+				for _, tag := range entryTagPattern.FindAllString(entry.Description, -1) {
+					entry.Tags[tag] = true
+				}
+
 				var entryTime time.Time
 				if inlineDate := inlineDatePattern.FindString(entry.Description); inlineDate != "" {
 					entryTime = parseDate(inlineDate[1:])
@@ -360,6 +367,9 @@ func main() {
 		// virtual entries
 		for _, entry := range transaction.Entries {
 			if !(itemKinds[entry.Account.Name] && entry.Account.Parent.Name == "支出") {
+				continue
+			}
+			if entry.Tags["<!item>"] {
 				continue
 			}
 
