@@ -347,7 +347,7 @@ var views = []string{
 		cond := `
 		and account[1] = '资产'
 		and true != ALL(array[
-			account[2] = '基金'
+			account[2] like '%基金'
 			,account[2] = '股票'
 			,account[2] = '公积金'
 			,account[2] = '理财' and account[3] <> '活期'
