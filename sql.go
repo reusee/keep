@@ -56,7 +56,7 @@ func sqlInterface(
 	time.Sleep(time.Second)
 	pt("db started at port %d\n", port)
 
-	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://localhost:%d/postgres?sslmode=disable", port))
+	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://postgres@localhost:%d/postgres?sslmode=disable", port))
 	ce(err)
 	defer db.Close()
 	tx := db.MustBegin()
@@ -132,7 +132,7 @@ func sqlInterface(
 	}()
 	signal.Notify(sigs, os.Interrupt)
 
-	psql := exec.Command("psql", fmt.Sprintf("postgres://localhost:%d/postgres", port))
+	psql := exec.Command("psql", fmt.Sprintf("postgres://postgres@localhost:%d/postgres", port))
 	psql.Stdout = os.Stdout
 	psql.Stdin = os.Stdin
 	psql.Stderr = os.Stderr
@@ -209,9 +209,9 @@ var views = []string{
 
 	// this year expenses
 	`
-	create view this_year_expenses as
+	create view yearly_expenses as
 	select 
-	currency, sum(amount), account[2], 
+	extract(year from date) as year, currency, sum(amount), account[2], 
 	jsonb_pretty(jsonb_agg(
 			to_char(date, 'YYYY-MM-DD') 
 			|| ' ' 
@@ -222,10 +222,10 @@ var views = []string{
 			order by amount desc, date desc
 	)) 
 	from entries
-	where extract(year from date) = extract(year from now())
+	where true
 	and account[1] = '支出' 
-	group by account[2],currency 
-	order by sum desc
+	group by extract(year from date), account[2], currency 
+	order by extract(year from date) desc, sum desc
 	`,
 
 	// balance sheet

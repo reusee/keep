@@ -25,6 +25,7 @@ var (
 		"保险":  true,
 		"消耗品": true,
 		"物品":  true,
+		"基金":  true,
 	}
 )
 
