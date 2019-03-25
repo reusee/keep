@@ -60,53 +60,12 @@ type Transaction struct {
 }
 
 func main() {
-	var fromStr string
-	flag.StringVar(&fromStr, "from", "", "from date")
-	var toStr string
-	flag.StringVar(&toStr, "to", "", "to date")
-	var flagToday bool
-	flag.BoolVar(&flagToday, "today", false, "set from and to as today")
 	var noAmount bool
 	flag.BoolVar(&noAmount, "no-amount", false, "do not display amount")
-	var thisMonth bool
-	flag.BoolVar(&thisMonth, "this-month", false, "set from/to to this month")
 	var cmdSQL bool
 	flag.BoolVar(&cmdSQL, "sql", false, "load and show SQL ui")
 
 	flag.Parse()
-
-	// options
-	var fromTime, toTime time.Time
-	if flagToday {
-		now := time.Now()
-		fromTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
-		toTime = time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, time.Local)
-	}
-	if thisMonth {
-		now := time.Now()
-		fromTime = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
-		toTime = time.Date(now.Year(), now.Month()+1, 0, 23, 59, 59, 999, time.Local)
-	}
-	parseDate := func(str string) time.Time {
-		str = strings.Replace(str, "/", "-", -1)
-		str = strings.Replace(str, ".", "-", -1)
-		t, err := time.Parse("2006-01-02", str)
-		ce(we(err, "bad date: %s", str))
-		return t
-	}
-	if fromStr != "" {
-		fromTime = parseDate(fromStr).Add(-time.Hour)
-	}
-	if toStr != "" {
-		toTime = parseDate(toStr).Add(time.Hour)
-	}
-
-	if !fromTime.IsZero() {
-		pt("from %s\n", fromTime.Format("2006-01-02"))
-	}
-	if !toTime.IsZero() {
-		pt("to %s\n", toTime.Format("2006-01-02"))
-	}
 
 	// usage
 	args := flag.Args()
@@ -352,13 +311,6 @@ func main() {
 					account.TimeFrom = entryTime
 				}
 
-				if !fromTime.IsZero() && entryTime.Before(fromTime) {
-					continue
-				}
-				if !toTime.IsZero() && entryTime.After(toTime) {
-					continue
-				}
-
 				transaction.Entries = append(transaction.Entries, entry)
 			}
 
@@ -417,17 +369,15 @@ func main() {
 				}
 				balance.Add(balance, entry.Amount)
 				if sharePricePattern.MatchString(account.Name) {
-					if !flagToday {
-						isNegative := strings.HasPrefix(account.Parent.Name, "-") ||
-							strings.HasPrefix(account.Name, "-")
-						if !isNegative {
-							if balance.Sign() < 0 {
-								reportError("negative balance in stock share account")
-							}
-						} else {
-							if balance.Sign() > 0 {
-								reportError("positive balance in stock share account")
-							}
+					isNegative := strings.HasPrefix(account.Parent.Name, "-") ||
+						strings.HasPrefix(account.Name, "-")
+					if !isNegative {
+						if balance.Sign() < 0 {
+							reportError("negative balance in stock share account")
+						}
+					} else {
+						if balance.Sign() > 0 {
+							reportError("positive balance in stock share account")
 						}
 					}
 				}
@@ -763,4 +713,12 @@ func (a *Account) MatchPath(path []string) bool {
 		}
 	}
 	return c.Parent == nil // is root
+}
+
+func parseDate(str string) time.Time {
+	str = strings.Replace(str, "/", "-", -1)
+	str = strings.Replace(str, ".", "-", -1)
+	t, err := time.Parse("2006-01-02", str)
+	ce(we(err, "bad date: %s", str))
+	return t
 }
