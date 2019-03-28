@@ -534,7 +534,11 @@ func main() {
 			b := account.Subs[subNames[j]]
 			weightA, ok1 := sortWeight[sortWeightKey{level + 1, a.Name}]
 			weightB, ok2 := sortWeight[sortWeightKey{level + 1, b.Name}]
-			if ok1 || ok2 {
+			if ok1 && !ok2 {
+				return false
+			} else if !ok1 && ok2 {
+				return true
+			} else if ok1 && ok2 {
 				return weightA < weightB
 			}
 			// '/' 为单位的

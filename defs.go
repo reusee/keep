@@ -15,6 +15,7 @@ var (
 	}
 
 	sortWeight = map[sortWeightKey]int{
+		{1, "基金"}:  -1,
 		{1, "保险"}:  1,
 		{1, "消耗品"}: 2,
 		{1, "负债"}:  3,
