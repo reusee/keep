@@ -56,7 +56,7 @@ func sqlInterface(
 	time.Sleep(time.Second)
 	pt("db started at port %d\n", port)
 
-	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://localhost:%d/postgres?sslmode=disable", port))
+	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://postgres@localhost:%d/postgres?sslmode=disable", port))
 	ce(err)
 	defer db.Close()
 	tx := db.MustBegin()
@@ -132,7 +132,7 @@ func sqlInterface(
 	}()
 	signal.Notify(sigs, os.Interrupt)
 
-	psql := exec.Command("psql", fmt.Sprintf("postgres://localhost:%d/postgres", port))
+	psql := exec.Command("psql", fmt.Sprintf("postgres://postgres@localhost:%d/postgres", port))
 	psql.Stdout = os.Stdout
 	psql.Stdin = os.Stdin
 	psql.Stderr = os.Stderr
@@ -312,7 +312,9 @@ var views = []string{
 	|| E'\n-----\n'
 	|| (
 		select string_agg(
-			kind || ' ' || currency || amount, E'\n'
+			kind 
+			|| ' ' || currency || amount
+			,E'\n'
 			order by amount asc
 		) 
 		from (
@@ -321,6 +323,25 @@ var views = []string{
 			where account[1] = '负债'
 			and date < now() + interval '1 year'
 			group by currency, account[2]
+		) t0
+		where amount <> 0
+	)
+	|| E'\n-----\n'
+	|| (
+		select string_agg(
+			to_char(month, 'YYYY-MM-DD')
+			|| ' ' || currency || amount
+			,E'\n'
+			order by month asc
+		)  filter (
+			where month >= date_trunc('month', now())
+		)
+		from (
+			select sum(amount) as amount, currency, date_trunc('month', date) as month
+			from entries
+			where account[1] = '负债'
+			and date < now() + interval '1 year'
+			group by date_trunc('month', date), currency
 		) t0
 		where amount <> 0
 	)
