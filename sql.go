@@ -234,7 +234,7 @@ var views = []string{
 	select
 
 	(
-		select string_agg(currency || amount, ' ') from (
+		select string_agg(currency || amount, E'\n') from (
 			select sum(amount) as amount, currency
 			from entries
 			where account[1] = '资产'
@@ -259,7 +259,7 @@ var views = []string{
 	AS 资产
 
 	,(
-		select string_agg(currency || amount, ' ') from (
+		select string_agg(currency || amount, E'\n') from (
 			select sum(amount) as amount, currency
 			from entries
 			where account[1] = '负债'
@@ -284,7 +284,7 @@ var views = []string{
 	AS 负债
 
 	,(
-		select string_agg(currency || amount, ' ') from (
+		select string_agg(currency || amount, E'\n') from (
 			select sum(amount) + (
 				select sum(amount) 
 				from entries e
@@ -300,7 +300,7 @@ var views = []string{
 	AS 净资产
 
 	,(
-		select string_agg(currency || amount, ' ') from (
+		select string_agg(currency || amount, E'\n') from (
 			select sum(amount) as amount, currency
 			from entries
 			where account[1] = '负债'
@@ -348,7 +348,7 @@ var views = []string{
 	AS 一年负债
 
 	,(
-		select string_agg(currency || amount, ' ') from (
+		select string_agg(currency || amount, E'\n') from (
 			select sum(amount) + (
 				select sum(amount) 
 				from entries e
@@ -371,14 +371,14 @@ var views = []string{
 			account[2] like '%基金'
 			,account[2] = '股票'
 			,account[2] = '公积金'
-			,account[2] = '理财' and account[3] <> '活期'
+			,account[2] = '理财' and not account[3] ~* '.*活期.*'
 			,account[2] = '债权'
 			,account[2] = '押金'
 		])
 		`
 		return `
 		,(
-			select string_agg(currency || amount, ' ') from (
+			select string_agg(currency || amount, E'\n') from (
 				select sum(amount) as amount, currency
 				from entries
 				where true
@@ -390,7 +390,8 @@ var views = []string{
 		|| E'\n-----\n'
 		|| (
 			select string_agg(
-				kind || ' ' || currency || amount, E'\n'
+				kind 
+				|| ' ' || currency || amount, E'\n'
 				order by amount desc
 			) 
 			from (
@@ -407,7 +408,7 @@ var views = []string{
 	}() + `
 
 	,(
-		select string_agg(currency || amount, ' ') from (
+		select string_agg(currency || amount, E'\n') from (
 			select sum(amount) as amount, currency
 			from entries
 			where account[1] = '负债'
