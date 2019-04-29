@@ -366,15 +366,16 @@ var views = []string{
 
 	` + func() string {
 		cond := `
-		and account[1] = '资产'
-		and true != ALL(array[
-			account[2] like '%基金'
-			,account[2] = '股票'
-			,account[2] = '公积金'
-			,account[2] = '理财' and not account[3] ~* '.*活期.*'
-			,account[2] = '债权'
-			,account[2] = '押金'
-		])
+		and true in (
+			false
+			,account[1] = '资产' and account[2] = '工行'
+			,account[1] = '资产' and account[2] = '建行'
+			,account[1] = '资产' and account[2] = '中信'
+			,account[1] = '资产' and account[2] = '兴业'
+			,account[1] = '资产' and account[2] = '现金'
+			,account[1] = '资产' and account[2] = '微信钱包'
+			,account[1] = '资产' and account[2] = '京东金库'
+		)
 		`
 		return `
 		,(
@@ -403,7 +404,7 @@ var views = []string{
 			) t0
 			where amount <> 0
 		)
-		AS 流动资产
+		AS "T+0流动资产"
 		`
 	}() + `
 
