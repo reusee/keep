@@ -47,6 +47,11 @@ func sqlInterface(
 	`
 	err = ioutil.WriteFile(filepath.Join(dbDir, "postgresql.conf"), []byte(conf), 0644)
 	ce(err)
+	conf = `
+	host all all 127.0.0.1/32 trust
+	`
+	err = ioutil.WriteFile(filepath.Join(dbDir, "pg_hba.conf"), []byte(conf), 0644)
+	ce(err)
 	c := execCommand("postgres", "-D", dbDir)
 	c.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
@@ -56,7 +61,7 @@ func sqlInterface(
 	time.Sleep(time.Second)
 	pt("db started at port %d\n", port)
 
-	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://postgres@localhost:%d/postgres?sslmode=disable", port))
+	db, err := sqlx.Open("postgres", fmt.Sprintf("postgres://127.0.0.1:%d/postgres?sslmode=disable", port))
 	ce(err)
 	defer db.Close()
 	tx := db.MustBegin()
@@ -132,7 +137,7 @@ func sqlInterface(
 	}()
 	signal.Notify(sigs, os.Interrupt)
 
-	psql := exec.Command("psql", fmt.Sprintf("postgres://postgres@localhost:%d/postgres", port))
+	psql := exec.Command("psql", fmt.Sprintf("postgres://127.0.0.1:%d/postgres", port))
 	psql.Stdout = os.Stdout
 	psql.Stdin = os.Stdin
 	psql.Stderr = os.Stderr
