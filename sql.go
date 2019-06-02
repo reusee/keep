@@ -145,9 +145,9 @@ func sqlInterface(
 }
 
 var views = []string{
-	// entities
+	// things
 	`
-	create view entities as 
+	create view things as 
 	select * from (
 		select max(date) as date, max(description) as description, max(kinds) as kinds
 		,jsonb_object_agg(currency, amount) as amount
