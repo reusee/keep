@@ -41,7 +41,7 @@ func sqlInterface(
 		"--auth", "trust",
 		"--username", "foo",
 	).CombinedOutput()
-	ce(we(err, "%s", out))
+	ce(err, "%s", out)
 	pt("db dir: %s\n", dbDir)
 	defer execCommand("rm", "-rf", dbDir).Run()
 

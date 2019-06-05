@@ -9,10 +9,11 @@ import (
 )
 
 var (
-	pt             = fmt.Printf
-	zeroRat        = big.NewRat(0, 1)
-	me, we, ce, he = e.New(e.WithPackage("keep"))
-	isRoot         = func() bool {
+	pt      = fmt.Printf
+	zeroRat = big.NewRat(0, 1)
+	me      = e.Default.WithName("keep").WithStack()
+	ce, he  = e.New(me)
+	isRoot  = func() bool {
 		u, err := user.Current()
 		ce(err)
 		return u.Username == "root"

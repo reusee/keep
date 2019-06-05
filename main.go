@@ -78,7 +78,7 @@ func main() {
 	// read ledger file
 	ledgerPath := args[0]
 	contentBytes, err := ioutil.ReadFile(ledgerPath)
-	ce(we(err, "read ledger"))
+	ce(err, "read ledger")
 	content := string(contentBytes)
 	content = strings.Replace(content, "\r\n", "\n", -1)
 	content = strings.Replace(content, "\r", "\n", -1)
@@ -723,6 +723,6 @@ func parseDate(str string) time.Time {
 	str = strings.Replace(str, "/", "-", -1)
 	str = strings.Replace(str, ".", "-", -1)
 	t, err := time.Parse("2006-01-02", str)
-	ce(we(err, "bad date: %s", str))
+	ce(err, "bad date: %s", str)
 	return t
 }
