@@ -5,14 +5,14 @@ import (
 	"math/big"
 	"os/user"
 
-	"github.com/reusee/e2"
+	"github.com/reusee/e/v2"
 )
 
 var (
 	pt      = fmt.Printf
 	zeroRat = big.NewRat(0, 1)
-	me      = e2.Default.WithName("keep").WithStack()
-	ce, he  = e2.New(me)
+	me      = e.Default.WithName("keep").WithStack()
+	ce, he  = e.New(me)
 	isRoot  = func() bool {
 		u, err := user.Current()
 		ce(err)
