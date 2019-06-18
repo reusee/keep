@@ -75,7 +75,10 @@ func sqlInterface(
 			currency text,
 			amount numeric,
 			description text
-		)
+		);
+		CREATE INDEX ON entries(transaction);
+		CREATE INDEX ON entries(date);
+		CREATE INDEX ON entries USING gin((account));
 		`,
 	)
 	ce(err)
@@ -497,6 +500,38 @@ var views = []string{
 	) t0
 	group by d, year
 	order by year asc, sum(amount) desc
+	`,
+
+	// foods
+	`
+	create view foods as
+	select account, amount
+	from (
+		select account[3], abs(sum(amount)) as amount
+			,max(date) filter (where account[2] = '购买') as date
+		from entries
+		where 
+		account[1] = '消耗品'
+		and (
+			account[2] = '购买'
+			or account[2] = '已用'
+		)
+		and account[3] in (
+			select account[3]
+			from entries
+			where transaction in (
+				select transaction
+				from entries
+				where account[1] = '支出'
+				and account[2] = '饮食'
+			)
+			and account[1] = '消耗品'
+			and account[2] = '购买'
+		)
+		group by account[3]
+	) t0
+	where amount <> 0
+	order by date asc
 	`,
 
 	//
