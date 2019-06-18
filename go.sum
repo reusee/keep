@@ -21,6 +21,8 @@ github.com/reusee/e v0.0.0-20190605030117-cc3fe876074c h1:osWuAMbGkmSrbVeplkIHr/
 github.com/reusee/e v0.0.0-20190605030117-cc3fe876074c/go.mod h1:mppZXqwqYaXvqEaNsbZtoi3qeX0TfwzbuQTjOuSUcmI=
 github.com/reusee/e/v2 v2.1.2 h1:lYlgmkptiCpyKorgGcqzVhTC+eZRgFXlwPtTXmh3cBU=
 github.com/reusee/e/v2 v2.1.2/go.mod h1:kykJjxDURd5MAGzB+xkwN7WxfuZaotLjTssHtjpi5LQ=
+github.com/reusee/e/v2 v2.3.0 h1:zonq+wEcbOIiRUACbiyXV6eDkSZD7zzLI3hP4dGPJYA=
+github.com/reusee/e/v2 v2.3.0/go.mod h1:kykJjxDURd5MAGzB+xkwN7WxfuZaotLjTssHtjpi5LQ=
 github.com/reusee/e2 v0.0.0-20190605040540-d3f4fcdb6fd8 h1:LIXuP3wnTDHzxqkPvbXzO6+k5IXtNo6SbxFvIqsWE7M=
 github.com/reusee/e2 v0.0.0-20190605040540-d3f4fcdb6fd8/go.mod h1:VMeJzmPf9vmtjM+0sZ18eHpZU22+i385LfHka/KJKGw=
 golang.org/x/exp/errors v0.0.0-20190125153040-c74c464bbbf2/go.mod h1:YgqsNsAu4fTvlab/7uiYK9LJrCIzKg/NiZUIH1/ayqo=
