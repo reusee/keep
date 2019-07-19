@@ -452,11 +452,11 @@ func main() {
 			if isStockShareAccount {
 				price := new(big.Rat)
 				price, _ = price.SetString(account.Name)
-				pt("%s*", price.FloatString(3))
+				pt("%s*", price.FloatString(4))
 				nShare := new(big.Rat)
 				nShare.Set(balance)
 				nShare.Quo(nShare, price)
-				pt("%s", nShare.FloatString(1))
+				pt("%s", nShare.FloatString(2))
 			} else {
 				if !noAmount {
 					if name == "/" {
