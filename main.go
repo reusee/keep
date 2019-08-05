@@ -23,6 +23,7 @@ var (
 	accountSeparatePattern = regexp.MustCompile(`：|:`)
 	sharePricePattern      = regexp.MustCompile(`[0-9]+\.[0-9]{3}`)
 	monthPattern           = regexp.MustCompile(`^[0-9x]{4}$`)
+	datePattern            = regexp.MustCompile(`[0-9]{6}`)
 	blanksPattern          = regexp.MustCompile(`\s+`)
 	inlineDatePattern      = regexp.MustCompile(`@[0-9]{4}[/.-][0-9]{2}[/.-][0-9]{2}`)
 	commentLinePattern     = regexp.MustCompile(`^\s*(#|//)`)
@@ -509,6 +510,25 @@ func main() {
 			}
 			return true
 		}()
+		allIsDate := func() bool {
+			if !allIsLeaf {
+				return false
+			}
+			for _, name := range subNames {
+				sub := account.Subs[name]
+				sum := big.NewRat(0, 1)
+				for _, balance := range sub.Balances {
+					sum.Add(sum, balance)
+				}
+				if sum.Sign() == 0 {
+					continue
+				}
+				if !datePattern.MatchString(name) {
+					return false
+				}
+			}
+			return true
+		}()
 		allIsSharePrices := func() bool {
 			if !allIsLeaf {
 				return false
@@ -552,7 +572,7 @@ func main() {
 			}() {
 				return a.Name < b.Name
 			}
-			if allIsMonths {
+			if allIsMonths || allIsDate {
 				// 月份排序
 				return subNames[i] < subNames[j]
 			}
