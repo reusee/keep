@@ -537,7 +537,7 @@ var views = []string{
 	`
 	create view funds as
 	select * 
-	,(account[4]::numeric * (
+	,(account[5]::numeric * (
 		case when age(date) < '1 year'
 		then 1.16
 		else power(1.16, (extract(epoch from age(date)) / extract(epoch from interval '1 day' * 250)))
@@ -550,8 +550,8 @@ var views = []string{
 		,sum(amount) as amount
 		from entries
 		where account[1] = '资产'
-		and account[2] ~ '.*基金.*'
-		and account[4] ~ '[0-9]+\.[0-9]+'
+		and account[2] ~ '.*股基.*'
+		and account[5] ~ '[0-9]+\.[0-9]+'
 		group by transaction, account
 	) ts
 	where amount > 0
