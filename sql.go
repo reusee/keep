@@ -538,10 +538,10 @@ var views = []string{
 	create view funds as
 	select * 
 	,(account[5]::numeric * (
-		case when age(date) < '1 year'
-		then 1.16
-		else power(1.16, (extract(epoch from age(date)) / extract(epoch from interval '1 day' * 250)))
-		end
+		greatest(
+			power(1.30, (extract(epoch from age(date)) / extract(epoch from interval '1 day' * 365))),
+			1.06
+		)
 	))::numeric(10, 4) as target
 	from (
 		select 
