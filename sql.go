@@ -552,7 +552,7 @@ var views = []string{
 		where account[1] = '资产'
 		and account[2] ~ '.*股基.*'
 		and account[5] ~ '[0-9]+\.[0-9]+'
-		group by transaction, account
+		group by account
 	) ts
 	where amount > 0
 	order by account, target
