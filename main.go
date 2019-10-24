@@ -84,21 +84,6 @@ func main() {
 	content = strings.Replace(content, "\r\n", "\n", -1)
 	content = strings.Replace(content, "\r", "\n", -1)
 
-	// expand python expressions
-	for {
-		start := strings.Index(content, "{{")
-		if start < 0 {
-			break
-		}
-		end := strings.Index(content[start:], "}}")
-		if end < 0 {
-			break
-		}
-		end += start
-		expr := expandExpr(content[start+2 : end])
-		content = content[:start] + expr + content[end+2:]
-	}
-
 	type Block struct {
 		Line       int
 		HeaderDate string
