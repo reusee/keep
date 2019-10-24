@@ -9,9 +9,5 @@ var starlarkThread = &starlark.Thread{
 func expandExpr(str string) string {
 	value, err := starlark.Eval(starlarkThread, "", str, nil)
 	ce(err)
-	str, ok := starlark.AsString(value)
-	if !ok {
-		panic("not string")
-	}
-	return str
+	return value.String()
 }

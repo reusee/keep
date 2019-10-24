@@ -141,7 +141,7 @@ func main() {
 		return block1.Line < block2.Line
 	})
 
-	formattedBytes := make(chan []byte)
+	formatDone := make(chan bool)
 	go func() {
 		// format
 		out := new(bytes.Buffer)
@@ -180,7 +180,13 @@ func main() {
 			}
 			write("\n")
 		}
-		formattedBytes <- out.Bytes()
+		formatted := false
+		if !bytes.Equal(contentBytes, out.Bytes()) {
+			ce(ioutil.WriteFile(ledgerPath+".tmp", out.Bytes(), 0644))
+			ce(os.Rename(ledgerPath+".tmp", ledgerPath))
+			formatted = true
+		}
+		formatDone <- formatted
 	}()
 
 	// transaction
@@ -643,10 +649,9 @@ func main() {
 	}
 	printAccount(rootAccount, 0, 0, false)
 
-	formatted := <-formattedBytes
-	if !bytes.Equal(contentBytes, formatted) {
-		ce(ioutil.WriteFile(ledgerPath+".tmp", formatted, 0644))
-		ce(os.Rename(ledgerPath+".tmp", ledgerPath))
+	formatted := <-formatDone
+	if formatted {
+		pt("formatted\n")
 	}
 }
 
