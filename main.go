@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -140,48 +139,6 @@ func main() {
 		}
 		return block1.Line < block2.Line
 	})
-
-	formattedBytes := make(chan []byte)
-	go func() {
-		// format
-		out := new(bytes.Buffer)
-		write := func(s string) {
-			if _, err := out.WriteString(s); err != nil {
-				panic(err)
-			}
-		}
-		for _, block := range blocks {
-			write(block.Contents[0] + "\n")
-			var lineParts [][]string
-			var widths [3]int
-			for _, line := range block.Contents[1:] {
-				parts := blanksPattern.Split(line, 3)
-				lineParts = append(lineParts, parts)
-				for i, part := range parts {
-					width := displayWidth(part)
-					if width > widths[i] {
-						widths[i] = width
-					}
-				}
-			}
-			for _, parts := range lineParts {
-				for i, part := range parts {
-					if i > 0 && len(part) > 0 {
-						write("    ")
-					}
-					if i == len(parts)-1 {
-						part = strings.TrimRight(part, " ")
-					} else {
-						part = padToLen(part, widths[i])
-					}
-					write(part)
-				}
-				write("\n")
-			}
-			write("\n")
-		}
-		formattedBytes <- out.Bytes()
-	}()
 
 	// transaction
 	var transactions []*Transaction
@@ -643,11 +600,6 @@ func main() {
 	}
 	printAccount(rootAccount, 0, 0, false)
 
-	formatted := <-formattedBytes
-	if !bytes.Equal(contentBytes, formatted) {
-		ce(ioutil.WriteFile(ledgerPath+".tmp", formatted, 0644))
-		ce(os.Rename(ledgerPath+".tmp", ledgerPath))
-	}
 }
 
 func parseAmount(str string) (*big.Rat, error) {
