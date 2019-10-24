@@ -307,12 +307,37 @@ var views = []string{
 	)::text
 	AS 净资产
 
-	,(
+	` + func() string {
+		buf := new(strings.Builder)
+		for _, args := range [][]string{
+			{"1 year", "一年"},
+			{"3 year", "三年"},
+		} {
+			buf.WriteString(`
+	,'负债：'
+	|| (
 		select string_agg(currency || amount, E'\n') from (
 			select sum(amount) as amount, currency
 			from entries
 			where account[1] = '负债'
-			and date < now() + interval '1 year'
+			and date < now() + interval '` + args[0] + `'
+			group by currency
+		) t0
+		where amount <> 0
+	)::text
+	|| E'\n'
+	|| '净资产：'
+	|| (
+		select string_agg(currency || amount, E'\n') from (
+			select sum(amount) + (
+				select sum(amount) 
+				from entries e
+				where account[1] = '负债'
+				and currency = entries.currency
+				and date < now() + interval '` + args[0] + `'
+			) as amount, currency
+			from entries
+			where account[1] = '资产'
 			group by currency
 		) t0
 		where amount <> 0
@@ -329,7 +354,7 @@ var views = []string{
 			select sum(amount) as amount, currency, account[2] as kind
 			from entries
 			where account[1] = '负债'
-			and date < now() + interval '1 year'
+			and date < now() + interval '` + args[0] + `'
 			group by currency, account[2]
 		) t0
 		where amount <> 0
@@ -348,29 +373,16 @@ var views = []string{
 			select sum(amount) as amount, currency, date_trunc('month', date) as month
 			from entries
 			where account[1] = '负债'
-			and date < now() + interval '1 year'
+			and date < now() + interval '` + args[0] + `'
 			group by date_trunc('month', date), currency
 		) t0
 		where amount <> 0
 	)
-	AS 一年负债
-
-	,(
-		select string_agg(currency || amount, E'\n') from (
-			select sum(amount) + (
-				select sum(amount) 
-				from entries e
-				where account[1] = '负债'
-				and currency = entries.currency
-				and date < now() + interval '1 year'
-			) as amount, currency
-			from entries
-			where account[1] = '资产'
-			group by currency
-		) t0
-		where amount <> 0
-	)::text
-	AS 一年净资产
+	AS ` + args[1] + `预算
+			`)
+		}
+		return buf.String()
+	}() + `
 
 	` + func() string {
 		cond := `
