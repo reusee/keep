@@ -317,41 +317,6 @@ func main() {
 
 		}
 
-		// virtual entries
-		for _, entry := range transaction.Entries {
-			if !(itemKinds[entry.Account.Name] && entry.Account.Parent.Name == "支出") {
-				continue
-			}
-			if entry.Tags["<!item>"] {
-				continue
-			}
-
-			e := new(Entry)
-			e.Account = getAccount(rootAccount, []string{
-				"物品", "可用", entry.Account.Name,
-				entry.Time.Format("2006-01-02 ") +
-					transaction.Description,
-			})
-			e.Currency = "/"
-			e.Amount = big.NewRat(int64(entry.Amount.Sign()), 1)
-			e.Time = entry.Time
-			e.Year = entry.Year
-			e.Month = entry.Month
-			e.Day = entry.Day
-			transaction.Entries = append(transaction.Entries, e)
-			e = new(Entry)
-			e.Account = getAccount(rootAccount, []string{
-				"物品", "购买", entry.Account.Name,
-			})
-			e.Currency = "/"
-			e.Amount = big.NewRat(int64(-entry.Amount.Sign()), 1)
-			e.Time = entry.Time
-			e.Year = entry.Year
-			e.Month = entry.Month
-			e.Day = entry.Day
-			transaction.Entries = append(transaction.Entries, e)
-		}
-
 		if t.IsZero() {
 			continue
 		}
