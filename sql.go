@@ -546,6 +546,7 @@ var views = []string{
 	order by date asc
 	`,
 
+	// funds
 	`
 	create view funds as
 	select * 
@@ -568,6 +569,26 @@ var views = []string{
 	) ts
 	where amount > 0
 	order by account, target
+	`,
+
+	// equity
+	`
+	create view equity as
+	select 
+	distinct on (date)
+	to_char(date, 'YYYY-MM-DD') as date, sum as "￥"
+	from (
+		select
+		date,
+		transaction,
+		sum(amount) over (order by transaction asc)
+		from entries
+		where date < now()
+		and account[1] = '资产'
+		and currency = '￥'
+		order by transaction desc
+	) t0
+	order by date desc, transaction desc
 	`,
 
 	//

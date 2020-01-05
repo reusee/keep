@@ -19,3 +19,7 @@ var (
 		return u.Username == "root"
 	}()
 )
+
+type (
+	any = interface{}
+)

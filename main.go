@@ -54,6 +54,7 @@ type Entry struct {
 }
 
 type Transaction struct {
+	Date        time.Time
 	Description string
 	Entries     []*Entry
 	TimeFrom    time.Time
