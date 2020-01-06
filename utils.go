@@ -11,6 +11,7 @@ import (
 var (
 	pt      = fmt.Printf
 	zeroRat = big.NewRat(0, 1)
+	oneCent = big.NewRat(1, 100)
 	me      = e.Default.WithName("keep").WithStack()
 	ce, he  = e.New(me)
 	isRoot  = func() bool {

@@ -22,13 +22,6 @@ var (
 		{1, "负债"}:    4,
 		{1, "资产"}:    5,
 	}
-
-	noSkipZeroAmountAccounts = map[string]bool{
-		"保险":  true,
-		"消耗品": true,
-		"物品":  true,
-		"基金":  true,
-	}
 )
 
 type sortWeightKey struct {

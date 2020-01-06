@@ -381,19 +381,19 @@ func main() {
 	calculateProportion(rootAccount)
 
 	// print accounts
-	var printAccount func(account *Account, level int, nameLen int, noSkipZeroAmount bool)
-	printAccount = func(account *Account, level int, nameLen int, noSkipZeroAmount bool) {
-		if account.Parent == rootAccount && noSkipZeroAmountAccounts[account.Name] {
-			noSkipZeroAmount = true
-		}
+	var printAccount func(account *Account, level int, nameLen int)
+	printAccount = func(account *Account, level int, nameLen int) {
 		allZero := true
 		for _, balance := range account.Balances {
-			if balance.Cmp(zeroRat) != 0 {
+			abs := new(big.Rat)
+			abs.Set(balance)
+			abs.Abs(abs)
+			if balance.Cmp(zeroRat) != 0 && abs.Cmp(oneCent) > 0 {
 				allZero = false
 				break
 			}
 		}
-		if allZero && account != rootAccount && !noSkipZeroAmount {
+		if allZero && account != rootAccount {
 			return
 		}
 		pt(
@@ -401,7 +401,6 @@ func main() {
 			strings.Repeat(" │    ", level),
 			padToLen(account.Name, nameLen),
 		)
-		isStockShareAccount := sharePricePattern.MatchString(account.Name)
 		var currencyNames []string
 		for name := range account.Balances {
 			currencyNames = append(currencyNames, name)
@@ -416,24 +415,14 @@ func main() {
 			if !noAmount {
 				pt(" %s", name)
 			}
-			if isStockShareAccount {
-				price := new(big.Rat)
-				price, _ = price.SetString(account.Name)
-				pt("%s*", price.FloatString(4))
-				nShare := new(big.Rat)
-				nShare.Set(balance)
-				nShare.Quo(nShare, price)
-				pt("%s", nShare.FloatString(2))
-			} else {
-				if !noAmount {
-					if name == "/" {
-						pt("%s", balance.FloatString(0))
-					} else {
-						pt("%s", balance.FloatString(2))
-					}
+			if !noAmount {
+				if name == "/" {
+					pt("%s", balance.FloatString(0))
+				} else {
+					pt("%s", balance.FloatString(2))
 				}
-				pt("%s", proportion)
 			}
+			pt("%s", proportion)
 		}
 		pt("\n")
 
@@ -584,12 +573,7 @@ func main() {
 				skip = true
 				continue
 			}
-			printAccount(subAccount, level+1, subNameLen, func() bool {
-				if len(subAccount.Subs) == 0 {
-					return false
-				}
-				return noSkipZeroAmount
-			}())
+			printAccount(subAccount, level+1, subNameLen)
 		}
 		if skip {
 			pt(
@@ -598,7 +582,7 @@ func main() {
 			)
 		}
 	}
-	printAccount(rootAccount, 0, 0, false)
+	printAccount(rootAccount, 0, 0)
 
 	formatted := <-formatDone
 	if formatted {
