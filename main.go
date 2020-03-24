@@ -388,7 +388,7 @@ func main() {
 			abs := new(big.Rat)
 			abs.Set(balance)
 			abs.Abs(abs)
-			if balance.Cmp(zeroRat) != 0 && abs.Cmp(oneCent) > 0 {
+			if balance.Cmp(zeroRat) != 0 && abs.Cmp(oneCent) >= 0 {
 				allZero = false
 				break
 			}
