@@ -84,7 +84,7 @@ func sqlInterface(
 	ce(err)
 
 	for _, view := range views {
-		_, err := tx.Exec(view)
+		_, err = tx.Exec(view)
 		ce(err)
 	}
 
