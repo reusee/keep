@@ -519,17 +519,17 @@ var views = []string{
 	create view foods as
 	select account, amount
 	from (
-		select account[3], abs(sum(amount)) as amount
-			,max(date) filter (where account[2] = '购买') as date
+		select account[2], abs(sum(amount)) as amount
+			,max(date) filter (where account[1] = '消耗品购买') as date
 		from entries
 		where 
-		account[1] = '消耗品'
-		and (
-			account[2] = '购买'
-			or account[2] = '已用'
-		)
-		and account[3] in (
-			select account[3]
+		(
+      account[1] = '消耗品购买'
+      or 
+      account[1] = '消耗品已用'
+    )
+		and account[2] in (
+			select account[2]
 			from entries
 			where transaction in (
 				select transaction
@@ -537,10 +537,9 @@ var views = []string{
 				where account[1] = '支出'
 				and account[2] = '饮食'
 			)
-			and account[1] = '消耗品'
-			and account[2] = '购买'
+			and account[1] = '消耗品购买'
 		)
-		group by account[3]
+		group by account[2]
 	) t0
 	where amount <> 0
 	order by date asc
