@@ -569,7 +569,7 @@ func main() {
 		skip := false
 		for _, name := range subNames {
 			subAccount := account.Subs[name]
-			if time.Until(subAccount.TimeFrom) > time.Hour*24*365 {
+			if time.Until(subAccount.TimeFrom) > time.Hour*24*30*3 {
 				skip = true
 				continue
 			}
