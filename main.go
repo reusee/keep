@@ -635,6 +635,8 @@ func evalExpr(expr ast.Expr) (result *big.Rat, err error) {
 			return x.Sub(x, y), nil
 		case token.ADD:
 			return x.Add(x, y), nil
+		case token.QUO:
+			return x.Quo(x, y), nil
 		}
 
 	case *ast.ParenExpr:
