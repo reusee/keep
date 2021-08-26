@@ -70,6 +70,7 @@ func sqlInterface(
 			id bigserial primary key,
 			transaction bigint,
 			transaction_description text,
+      transaction_date timestamp with time zone,
 			date timestamp with time zone,
 			account text[],
 			currency text,
@@ -89,7 +90,7 @@ func sqlInterface(
 	}
 
 	stmt, err := tx.Prepare(pq.CopyIn("entries",
-		"transaction", "transaction_description",
+		"transaction", "transaction_description", "transaction_date",
 		"date", "account",
 		"currency", "amount",
 		"description",
@@ -102,6 +103,7 @@ func sqlInterface(
 			if _, err := stmt.Exec(
 				tid,
 				transaction.Description,
+				transaction.Date,
 				entry.Time,
 				func() (ret pq.StringArray) {
 					acc := entry.Account
@@ -463,9 +465,11 @@ var views = []string{
 	select 
 	to_char(d, 'YYYY-MM') AS 月份,
 	d - lag(d, 1) over (partition by c order by d asc) as 日数,
-	net AS 净资产,
+  asset as 资产,
+  liability as 负债,
+	asset + liability AS 净资产,
 	c,
-	net - lag(net, 1) over (partition by c order by d asc) as 变动
+	(asset + liability) - lag(asset + liability, 1) over (partition by c order by d asc) as 变动
 	from (
 		select 
 		c,
@@ -476,14 +480,14 @@ var views = []string{
 			where account[1] = '资产'
 			and currency = c
 			and date < d
-		), 0) 
-		+ COALESCE((
+		), 0) as asset,
+		COALESCE((
 			select sum(amount)
 			from entries
 			where account[1] = '负债'
 			and currency = c
-			and date < d
-		), 0) net
+			and transaction_date < d
+		), 0) as liability
 		from (
 			select distinct date_trunc('month', date) as d , currency as c from entries
 			where currency in ('￥', '$')
